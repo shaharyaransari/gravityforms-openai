@@ -290,9 +290,10 @@ class GWiz_GF_OpenAI extends GFFeedAddOn {
 			),
 			'chat/completions' => array(
 				'gpt-3.5-turbo' => array(
+					//'type'        => 'GPT 3.5 Turbo',
 					'description' => __( 'The same model used by <a href="https://chat.openai.com" target="_blank">ChatGPT</a>.', 'gravityforms-openai' ),
 				),
-				'gpt-4'         => array(
+								'gpt-4'         => array(
 					'waitlist'    => 'https://openai.com/waitlist/gpt-4-api',
 					'description' => __( 'More capable than any GPT-3.5 model, able to do more complex tasks, and optimized for chat. Will be updated with the latest model iteration.<br /><br /><a target="_blank" href="https://openai.com/waitlist/gpt-4-api">Join Waitlist</a>', 'gravityforms-openai' ),
 				),
@@ -531,6 +532,26 @@ class GWiz_GF_OpenAI extends GFFeedAddOn {
 						),
 						'default_value' => 'completions',
 					),
+                    array(
+						'name'          => 'api_base',
+						'tooltip'       => 'Select the API Provider to use.',
+						'label'         => __( 'API Provider', 'gravityforms-openai' ),
+						'type'          => 'radio',
+						'choices'       => array(
+							array(
+								'value'   => 'https://api.openai.com/v1/',
+								'label'   => __( 'OpenAI API', 'gravityforms-openai' ),
+                                'tooltip'   => 'API Provider: https://api.openai.com/v1/',
+							),
+							array(
+								'value'   => 'https://api.ieltsscience.fun/v1/',
+								'label'   => __( 'In-house API', 'gravityforms-openai' ),
+                                'tooltip'   => 'API Provider: https://api.ieltsscience.fun/v1/',
+							),
+							// Add more options as needed
+						),
+						'default_value' => 'https://api.openai.com/v1/',
+                    ),
 				),
 			),
 			array(
@@ -1662,7 +1683,10 @@ class GWiz_GF_OpenAI extends GFFeedAddOn {
 	public function make_request( $endpoint, $body, $feed ) {
 		static $request_cache = array();
 
-		$url = 'https://api.openai.com/v1/' . $endpoint;
+		// Use the user-specified API base if available, else use default
+		$api_base = rgar( $feed['meta'], 'api_base', 'https://api.openai.com/v1/' );
+
+		$url = $api_base . $endpoint;
 
 		$cache_key = sha1( serialize( array(
 			'url'            => $url,
