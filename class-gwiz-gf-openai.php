@@ -439,26 +439,30 @@ class GWiz_GF_OpenAI extends GFFeedAddOn
 	}
 
 
-	public function getBestSecretKey()
-	{
-		$minIndex = 0;
-		$minUsage = get_option('secret_key_1_usage', 0);
-
-		for ($i = 2; $i <= 10; $i++) {
-			$usage = get_option("secret_key_{$i}_usage", false);
-			if ($usage === false) {
+	public function getBestSecretKey() {
+		$settings = get_option('gravityformsaddon_gravityforms-openai_settings', array());
+		$usageCounts = get_option('secret_key_usage_counts', array_fill(1, 10, 0));
+	
+		$minIndex = null;
+		$minUsage = PHP_INT_MAX;
+	
+		for ($i = 1; $i <= 10; $i++) {
+			if (!isset($settings["secret_key_$i"])) {
 				break; // Stop checking if a key doesn't exist
 			}
-			if ($usage < $minUsage) {
-				$minIndex = $i - 1;
-				$minUsage = $usage;
+			if ($usageCounts[$i] < $minUsage) {
+				$minIndex = $i;
+				$minUsage = $usageCounts[$i];
 			}
 		}
-
-		update_option("secret_key_" . ($minIndex + 1) . "_usage", $minUsage + 1);
-
-		return "secret_key_" . ($minIndex + 1);
-	}
+	
+		if ($minIndex !== null) {
+			$usageCounts[$minIndex]++;
+			update_option('secret_key_usage_counts', $usageCounts);
+		}
+	
+		return $minIndex !== null ? "secret_key_$minIndex" : null;
+	}	
 
 
 	/**
