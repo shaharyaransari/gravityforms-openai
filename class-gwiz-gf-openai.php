@@ -427,6 +427,16 @@ class GWiz_GF_OpenAI extends GFFeedAddOn
 						// Only the first key is required
 					),
 					array(
+						'name'        => 'api_key',
+						'tooltip'     => __( 'Enter your Azure OpenAI API key.', 'gravityforms-openai' ),
+						'description' => __( 'Key for Azure OpenAI API.' ),
+						'label'       => 'Azure API Key',
+						'type'        => 'text',
+						'input_type'  => 'password',
+						'class'       => 'medium',
+						'required'    => true,
+					),
+					array(
 						'name' => "organization_$i",
 						'tooltip' => __('Enter your OpenAI organization if you belong to multiple.', 'gravityforms-openai'),
 						'description' => '<a href="https://beta.openai.com/account/org-settings" target="_blank">'
@@ -608,6 +618,11 @@ class GWiz_GF_OpenAI extends GFFeedAddOn
 								'value' => 'https://api.ieltsscience.fun/v1/',
 								'label' => __('In-house API', 'gravityforms-openai'),
 								'tooltip' => 'API Provider: https://api.ieltsscience.fun/v1/',
+							),
+							array(
+								'value'   => 'https://writify.openai.azure.com/openai/deployments/IELTS-Writify/',
+								'label'   => __( 'Azure OpenAI API', 'gravityforms-openai' ),
+								'tooltip'   => 'API Provider: https://writify.openai.azure.com/openai/deployments/IELTS-Writify/',
 							),
 							// Add more options as needed
 						),
@@ -1774,6 +1789,10 @@ class GWiz_GF_OpenAI extends GFFeedAddOn
 
 		$url = $api_base . $endpoint;
 
+		if ( $api_base === 'https://writify.openai.azure.com/openai/deployments/IELTS-Writify/' ) {
+			$url .= '?api-version=2023-03-15-preview';
+		}
+
 		$cache_key = sha1(
 			serialize(
 				array(
@@ -1874,15 +1893,17 @@ class GWiz_GF_OpenAI extends GFFeedAddOn
 		$settings = $this->get_plugin_settings();
 		$secret_key = $this->getBestSecretKey();
 		$organization = $settings["organization_$secret_key"];
+		$api_key = $settings['api_key'];
 
 		$headers = array(
 			'Content-Type' => 'application/json',
 			'Authorization' => 'Bearer ' . $settings[$secret_key],
+			'api-key'       => $api_key,
 		);
 
 		if ($organization) {
 			$headers['OpenAI-Organization'] = $organization;
-		}
+		}		
 
 		return $headers;
 	}
