@@ -112,8 +112,9 @@ class GWiz_GF_OpenAI extends GFFeedAddOn
 	 */
 	protected $_supports_feed_ordering = true;
 
-	public static function get_instance() {
-		if ( self::$instance === null ) {
+	public static function get_instance()
+	{
+		if (self::$instance === null) {
 			self::$instance = new self;
 		}
 
@@ -155,8 +156,8 @@ class GWiz_GF_OpenAI extends GFFeedAddOn
 		$this->setup_autoload();
 		$this->init_auto_updater();
 
-		add_filter( 'gform_export_form', array( $this, 'export_feeds_with_form' ) );
-		add_action( 'gform_forms_post_import', array( $this, 'import_feeds_with_form' ) );
+		add_filter('gform_export_form', array($this, 'export_feeds_with_form'));
+		add_action('gform_forms_post_import', array($this, 'import_feeds_with_form'));
 	}
 
 	/**
@@ -310,17 +311,17 @@ class GWiz_GF_OpenAI extends GFFeedAddOn
 				),
 			),
 			'chat/completions' => array(
-				'gpt-3.5-turbo'     => array(
-					'description' => __( 'The same model used by <a href="https://chat.openai.com" target="_blank">ChatGPT</a>.', 'gravityforms-openai' ),
+				'gpt-3.5-turbo' => array(
+					'description' => __('The same model used by <a href="https://chat.openai.com" target="_blank">ChatGPT</a>.', 'gravityforms-openai'),
 				),
 				'gpt-3.5-turbo-16k' => array(
-					'description' => __( 'Same capabilities as the standard gpt-3.5-turbo model but with 4x the context length.', 'gravityforms-openai' ),
+					'description' => __('Same capabilities as the standard gpt-3.5-turbo model but with 4x the context length.', 'gravityforms-openai'),
 				),
-				'gpt-4'             => array(
-					'description' => __( 'More capable than any GPT-3.5 model, able to do more complex tasks, and optimized for chat. Will be updated with the latest model iteration.', 'gravityforms-openai' ),
+				'gpt-4' => array(
+					'description' => __('More capable than any GPT-3.5 model, able to do more complex tasks, and optimized for chat. Will be updated with the latest model iteration.', 'gravityforms-openai'),
 				),
-				'gpt-4-32k'         => array(
-					'description' => __( 'Same capabilities as the base gpt-4 mode but with 4x the context length. Will be updated with the latest model iteration.', 'gravityforms-openai' ),
+				'gpt-4-32k' => array(
+					'description' => __('Same capabilities as the base gpt-4 mode but with 4x the context length. Will be updated with the latest model iteration.', 'gravityforms-openai'),
 				),
 			),
 			'edits' => array(
@@ -414,11 +415,11 @@ class GWiz_GF_OpenAI extends GFFeedAddOn
 						'name' => "secret_key_$i",
 						'tooltip' => __('Enter your OpenAI secret key.', 'gravityforms-openai'),
 						'description' => '<a href="https://beta.openai.com/account/api-keys" target="_blank">'
-						. __('Manage API keys') . '</a><br />'
-						. sprintf(
-							__('Example: %s', 'gravityforms-openai'),
-							'<code>sk-5q6D85X27xr1e1bNEUuLGQp6a0OANXvFxyIo1WnuUbsNb21Z</code>'
-						),
+							. __('Manage API keys') . '</a><br />'
+							. sprintf(
+								__('Example: %s', 'gravityforms-openai'),
+								'<code>sk-5q6D85X27xr1e1bNEUuLGQp6a0OANXvFxyIo1WnuUbsNb21Z</code>'
+							),
 						'label' => "Secret Key $i",
 						'type' => 'text',
 						'input_type' => 'password',
@@ -427,24 +428,24 @@ class GWiz_GF_OpenAI extends GFFeedAddOn
 						// Only the first key is required
 					),
 					array(
-						'name'        => 'api_key',
-						'tooltip'     => __( 'Enter your Azure OpenAI API key.', 'gravityforms-openai' ),
-						'description' => __( 'Key for Azure OpenAI API.' ),
-						'label'       => 'Azure API Key',
-						'type'        => 'text',
-						'input_type'  => 'password',
-						'class'       => 'medium',
-						'required'    => true,
+						'name' => 'api_key',
+						'tooltip' => __('Enter your Azure OpenAI API key.', 'gravityforms-openai'),
+						'description' => __('Key for Azure OpenAI API.'),
+						'label' => 'Azure API Key',
+						'type' => 'text',
+						'input_type' => 'password',
+						'class' => 'medium',
+						'required' => true,
 					),
 					array(
 						'name' => "organization_$i",
 						'tooltip' => __('Enter your OpenAI organization if you belong to multiple.', 'gravityforms-openai'),
 						'description' => '<a href="https://beta.openai.com/account/org-settings" target="_blank">'
-						. __('Organization Settings') . '</a><br />'
-						. sprintf(
-							__('Example: %s', 'gravityforms-openai'),
-							'<code>org-st6H4JIzknQvU9MoNqRWxPst</code>'
-						),
+							. __('Organization Settings') . '</a><br />'
+							. sprintf(
+								__('Example: %s', 'gravityforms-openai'),
+								'<code>org-st6H4JIzknQvU9MoNqRWxPst</code>'
+							),
 						'label' => "Organization $i",
 						'type' => 'text',
 						'class' => 'medium',
@@ -458,13 +459,14 @@ class GWiz_GF_OpenAI extends GFFeedAddOn
 	}
 
 
-	public function getBestSecretKey() {
+	public function getBestSecretKey()
+	{
 		$settings = get_option('gravityformsaddon_gravityforms-openai_settings', array());
 		$usageCounts = get_option('secret_key_usage_counts', array_fill(1, 10, 0));
-	
+
 		$minIndex = null;
 		$minUsage = PHP_INT_MAX;
-	
+
 		for ($i = 1; $i <= 10; $i++) {
 			if (!isset($settings["secret_key_$i"])) {
 				break; // Stop checking if a key doesn't exist
@@ -474,14 +476,14 @@ class GWiz_GF_OpenAI extends GFFeedAddOn
 				$minUsage = $usageCounts[$i];
 			}
 		}
-	
+
 		if ($minIndex !== null) {
 			$usageCounts[$minIndex]++;
 			update_option('secret_key_usage_counts', $usageCounts);
 		}
-	
+
 		return $minIndex !== null ? "secret_key_$minIndex" : null;
-	}	
+	}
 
 
 	/**
@@ -561,74 +563,62 @@ class GWiz_GF_OpenAI extends GFFeedAddOn
 
 	public function feed_settings_fields()
 	{
+		// Start with the general settings
+		$general_fields = array(
+			array(
+				'label' => __('Name', 'gp-limit-submissions'),
+				'type' => 'text',
+				'name' => 'feed_name',
+				'default_value' => $this->get_default_feed_name(),
+				'class' => 'medium',
+				'tooltip' => __('Enter a name for this OpenAI feed. Only displayed on administrative screens.', 'gravityforms-openai'),
+				'required' => true,
+			),
+			array(
+				'name' => 'endpoint',
+				'tooltip' => 'Select the OpenAI Endpoint to use.',
+				'label' => __('OpenAI Endpoint', 'gravityforms-openai'),
+				'type' => 'radio',
+				'choices' => array(
+					array('value' => 'completions', 'label' => __('Completions', 'gravityforms-openai'), 'tooltip' => 'openai_endpoint_completions'),
+					array('value' => 'chat/completions', 'label' => __('Chat Completions', 'gravityforms-openai'), 'tooltip' => 'openai_endpoint_chat_completions'),
+					array('value' => 'edits', 'label' => __('Edits', 'gravityforms-openai'), 'tooltip' => 'openai_endpoint_edits'),
+					array('value' => 'moderations', 'label' => __('Moderations', 'gravityforms-openai'), 'tooltip' => 'openai_endpoint_moderations'),
+				),
+				'default_value' => 'completions',
+			),
+		);
+
+		// Create a new section for API Provider
+		$api_provider_fields = array();
+
+		// Get all user roles
+		$editable_roles = get_editable_roles();
+
+		foreach ($editable_roles as $role => $details) {
+			$api_provider_fields[] = array(
+				'name' => 'api_base_' . $role,
+				'tooltip' => 'Select the API Provider to use for ' . $role,
+				'label' => __('API Provider for ' . ucfirst($role), 'gravityforms-openai'),
+				'type' => 'radio',
+				'choices' => array(
+					array('value' => 'https://api.openai.com/v1/', 'label' => __('OpenAI API', 'gravityforms-openai')),
+					array('value' => 'https://api.ieltsscience.fun/v1/', 'label' => __('In-house API', 'gravityforms-openai')),
+					array('value' => 'https://writify.openai.azure.com/openai/deployments/IELTS-Writify/', 'label' => __('Azure OpenAI API', 'gravityforms-openai')),
+				),
+				'default_value' => 'https://api.openai.com/v1/',
+			);
+		}
+
+		// Return the full settings array
 		return array(
 			array(
 				'title' => 'General Settings',
-				'fields' => array(
-					array(
-						'label' => __('Name', 'gp-limit-submissions'),
-						'type' => 'text',
-						'name' => 'feed_name',
-						'default_value' => $this->get_default_feed_name(),
-						'class' => 'medium',
-						'tooltip' => __('Enter a name for this OpenAI feed. Only displayed on administrative screens.', 'gravityforms-openai'),
-						'required' => true,
-					),
-					array(
-						'name' => 'endpoint',
-						'tooltip' => 'Select the OpenAI Endpoint to use.',
-						'label' => __('OpenAI Endpoint', 'gravityforms-openai'),
-						'type' => 'radio',
-						'choices' => array(
-							array(
-								'value' => 'completions',
-								'label' => __('Completions', 'gravityforms-openai'),
-								'tooltip' => 'openai_endpoint_completions',
-							),
-							array(
-								'value' => 'chat/completions',
-								'label' => __('Chat Completions', 'gravityforms-openai'),
-								'tooltip' => 'openai_endpoint_chat_completions',
-							),
-							array(
-								'value' => 'edits',
-								'label' => __('Edits', 'gravityforms-openai'),
-								'tooltip' => 'openai_endpoint_edits',
-							),
-							array(
-								'value' => 'moderations',
-								'label' => __('Moderations', 'gravityforms-openai'),
-								'tooltip' => 'openai_endpoint_moderations',
-							),
-						),
-						'default_value' => 'completions',
-					),
-					array(
-						'name' => 'api_base',
-						'tooltip' => 'Select the API Provider to use.',
-						'label' => __('API Provider', 'gravityforms-openai'),
-						'type' => 'radio',
-						'choices' => array(
-							array(
-								'value' => 'https://api.openai.com/v1/',
-								'label' => __('OpenAI API', 'gravityforms-openai'),
-								'tooltip' => 'API Provider: https://api.openai.com/v1/',
-							),
-							array(
-								'value' => 'https://api.ieltsscience.fun/v1/',
-								'label' => __('In-house API', 'gravityforms-openai'),
-								'tooltip' => 'API Provider: https://api.ieltsscience.fun/v1/',
-							),
-							array(
-								'value'   => 'https://writify.openai.azure.com/openai/deployments/IELTS-Writify/',
-								'label'   => __( 'Azure OpenAI API', 'gravityforms-openai' ),
-								'tooltip'   => 'API Provider: https://writify.openai.azure.com/openai/deployments/IELTS-Writify/',
-							),
-							// Add more options as needed
-						),
-						'default_value' => 'https://api.openai.com/v1/',
-					),
-				),
+				'fields' => $general_fields,
+			),
+			array(
+				'title' => 'API Provider',
+				'fields' => $api_provider_fields,
 			),
 			array(
 				'title' => 'Completions',
@@ -1486,7 +1476,9 @@ class GWiz_GF_OpenAI extends GFFeedAddOn
 
 		if (!$this->is_gravityforms_supported('2.5')) {
 			?>
-			<div class="<?php echo esc_attr($error_classes); ?>"><?php echo esc_html($validation_message); ?></div>
+			<div class="<?php echo esc_attr($error_classes); ?>">
+				<?php echo esc_html($validation_message); ?>
+			</div>
 			<?php
 			return ob_get_clean();
 		}
@@ -1784,12 +1776,18 @@ class GWiz_GF_OpenAI extends GFFeedAddOn
 	{
 		static $request_cache = array();
 
-		// Use the user-specified API base if available, else use default
-		$api_base = rgar($feed['meta'], 'api_base', 'https://api.openai.com/v1/');
+		// Identify the user role
+		$current_user = wp_get_current_user();
+		$user_roles = $current_user->roles;
+		$primary_role = !empty($user_roles) ? $user_roles[0] : 'default';
+
+		// Get the saved API base for the user role from the feed settings
+		$option_name = 'api_base_' . $primary_role;
+		$api_base = rgar($feed['meta'], $option_name, 'https://api.openai.com/v1/');
 
 		$url = $api_base . $endpoint;
 
-		if ( $api_base === 'https://writify.openai.azure.com/openai/deployments/IELTS-Writify/' ) {
+		if ($api_base === 'https://writify.openai.azure.com/openai/deployments/IELTS-Writify/') {
 			$url .= '?api-version=2023-03-15-preview';
 		}
 
@@ -1846,7 +1844,8 @@ class GWiz_GF_OpenAI extends GFFeedAddOn
 			array_merge(
 				array(
 					'body' => json_encode($body),
-				), $this->get_request_params($feed)
+				),
+				$this->get_request_params($feed)
 			)
 		);
 
@@ -1898,12 +1897,12 @@ class GWiz_GF_OpenAI extends GFFeedAddOn
 		$headers = array(
 			'Content-Type' => 'application/json',
 			'Authorization' => 'Bearer ' . $settings[$secret_key],
-			'api-key'       => $api_key,
+			'api-key' => $api_key,
 		);
 
 		if ($organization) {
 			$headers['OpenAI-Organization'] = $organization;
-		}		
+		}
 
 		return $headers;
 	}
@@ -1915,14 +1914,15 @@ class GWiz_GF_OpenAI extends GFFeedAddOn
 	 *
 	 * @return array
 	 */
-	public function export_feeds_with_form( $form ) {
-		$feeds = $this->get_feeds( $form['id'] );
+	public function export_feeds_with_form($form)
+	{
+		$feeds = $this->get_feeds($form['id']);
 
-		if ( ! isset( $form['feeds'] ) ) {
+		if (!isset($form['feeds'])) {
 			$form['feeds'] = array();
 		}
 
-		$form['feeds'][ $this->get_slug() ] = $feeds;
+		$form['feeds'][$this->get_slug()] = $feeds;
 
 		return $form;
 	}
@@ -1932,27 +1932,28 @@ class GWiz_GF_OpenAI extends GFFeedAddOn
 	 *
 	 * @param array $forms Imported forms.
 	 */
-	public function import_feeds_with_form( $forms ) {
-		foreach ( $forms as $import_form ) {
+	public function import_feeds_with_form($forms)
+	{
+		foreach ($forms as $import_form) {
 			// Ensure the imported form is the latest.
-			$form = GFAPI::get_form( $import_form['id'] );
+			$form = GFAPI::get_form($import_form['id']);
 
-			if ( ! rgars( $form, 'feeds/' . $this->get_slug() ) ) {
+			if (!rgars($form, 'feeds/' . $this->get_slug())) {
 				continue;
 			}
 
-			foreach ( rgars( $form, 'feeds/' . $this->get_slug() ) as $feed ) {
-				GFAPI::add_feed( $form['id'], $feed['meta'], $this->get_slug() );
+			foreach (rgars($form, 'feeds/' . $this->get_slug()) as $feed) {
+				GFAPI::add_feed($form['id'], $feed['meta'], $this->get_slug());
 			}
 
 			// Remove feeds from the form array as it's no longer needed.
-			unset( $form['feeds'][ $this->get_slug() ] );
+			unset($form['feeds'][$this->get_slug()]);
 
-			if ( empty( $form['feeds'] ) ) {
-				unset( $form['feeds'] );
+			if (empty($form['feeds'])) {
+				unset($form['feeds']);
 			}
 
-			GFAPI::update_form( $form );
+			GFAPI::update_form($form);
 		}
 	}
 }
