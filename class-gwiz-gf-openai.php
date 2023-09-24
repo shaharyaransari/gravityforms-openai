@@ -435,7 +435,7 @@ class GWiz_GF_OpenAI extends GFFeedAddOn
 						'type' => 'text',
 						'input_type' => 'password',
 						'class' => 'medium',
-						'required' => true,
+						'required' => $i == 1,
 					),
 					array(
 						'name' => "organization_$i",
