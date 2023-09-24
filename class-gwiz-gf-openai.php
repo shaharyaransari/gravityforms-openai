@@ -428,10 +428,10 @@ class GWiz_GF_OpenAI extends GFFeedAddOn
 						// Only the first key is required
 					),
 					array(
-						'name' => 'api_key',
+						'name' => "api_key_$i",
 						'tooltip' => __('Enter your Azure OpenAI API key.', 'gravityforms-openai'),
 						'description' => __('Key for Azure OpenAI API.'),
-						'label' => 'Azure API Key',
+						'label' => "Azure API Key_$i",
 						'type' => 'text',
 						'input_type' => 'password',
 						'class' => 'medium',
@@ -464,13 +464,20 @@ class GWiz_GF_OpenAI extends GFFeedAddOn
 		$settings = get_option('gravityformsaddon_gravityforms-openai_settings', array());
 		$usageCounts = get_option('secret_key_usage_counts', array_fill(1, 10, 0));
 
+		$this->log_debug("Settings: " . print_r($settings, true));
+		$this->log_debug("Usage Counts: " . print_r($usageCounts, true));
+
 		$minIndex = null;
 		$minUsage = PHP_INT_MAX;
 
 		for ($i = 1; $i <= 10; $i++) {
-			if (!isset($settings["secret_key_$i"])) {
-				break; // Stop checking if a key doesn't exist
+			// Check if the current key exists in settings and has a value
+			$keyExistsAndHasValue = isset($settings["secret_key_$i"]) && !empty($settings["secret_key_$i"]);
+
+			if (!$keyExistsAndHasValue) {
+				continue;  // If the key doesn't exist or is empty, continue checking
 			}
+
 			if ($usageCounts[$i] < $minUsage) {
 				$minIndex = $i;
 				$minUsage = $usageCounts[$i];
@@ -481,6 +488,8 @@ class GWiz_GF_OpenAI extends GFFeedAddOn
 			$usageCounts[$minIndex]++;
 			update_option('secret_key_usage_counts', $usageCounts);
 		}
+
+		$this->log_debug("Selected key: secret_key_$minIndex");
 
 		return $minIndex !== null ? "secret_key_$minIndex" : null;
 	}
@@ -1891,6 +1900,11 @@ class GWiz_GF_OpenAI extends GFFeedAddOn
 	{
 		$settings = $this->get_plugin_settings();
 		$secret_key = $this->getBestSecretKey();
+		
+		// Log the retrieved settings and secret key
+		$this->log_debug("Settings: " . print_r($settings, true));
+		$this->log_debug("Selected Secret Key: " . $secret_key);
+		
 		$organization = $settings["organization_$secret_key"];
 		$api_key = $settings['api_key'];
 
@@ -1903,6 +1917,9 @@ class GWiz_GF_OpenAI extends GFFeedAddOn
 		if ($organization) {
 			$headers['OpenAI-Organization'] = $organization;
 		}
+		
+		// Log the constructed headers
+    	$this->log_debug("Headers: " . print_r($headers, true));
 
 		return $headers;
 	}
