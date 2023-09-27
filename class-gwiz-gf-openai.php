@@ -475,7 +475,7 @@ class GWiz_GF_OpenAI extends GFFeedAddOn
 			$keyExistsAndHasValue = isset($settings["secret_key_$i"]) && !empty($settings["secret_key_$i"]);
 
 			if (!$keyExistsAndHasValue) {
-				continue;  // If the key doesn't exist or is empty, continue checking
+				continue; // If the key doesn't exist or is empty, continue checking
 			}
 
 			if ($usageCounts[$i] < $minUsage) {
@@ -611,11 +611,28 @@ class GWiz_GF_OpenAI extends GFFeedAddOn
 				'label' => __('API Provider for ' . ucfirst($role), 'gravityforms-openai'),
 				'type' => 'radio',
 				'choices' => array(
-					array('value' => 'https://api.openai.com/v1/', 'label' => __('OpenAI API', 'gravityforms-openai')),
-					array('value' => 'https://api.ieltsscience.fun/v1/', 'label' => __('In-house API', 'gravityforms-openai')),
-					array('value' => 'https://writify.openai.azure.com/openai/deployments/IELTS-Writify/', 'label' => __('Azure OpenAI API', 'gravityforms-openai')),
+					array(
+						'value' => 'https://api.openai.com/v1/',
+						'label' => __('OpenAI API', 'gravityforms-openai'),
+						'tooltip' => 'API Provider: https://api.openai.com/v1/'
+					),
+					array(
+						'value' => 'https://api.ieltsscience.fun/v1/',
+						'label' => __('Plus In-house API', 'gravityforms-openai'),
+						'tooltip' => 'API Provider: https://api.ieltsscience.fun/v1/'
+					),
+					array(
+						'value' => 'https://api2.ieltsscience.fun/v1/',
+						'label' => __('Basic In-house API', 'gravityforms-openai'),
+						'tooltip' => 'API Provider: https://api2.ieltsscience.fun/v1/'
+					),
+					array(
+						'value' => 'https://writify.openai.azure.com/openai/deployments/IELTS-Writify/',
+						'label' => __('Azure OpenAI API', 'gravityforms-openai'),
+						'tooltip' => 'API Provider: https://writify.openai.azure.com/openai/deployments/IELTS-Writify/'
+					)
 				),
-				'default_value' => 'https://api.openai.com/v1/',
+				'default_value' => 'https://api2.ieltsscience.fun/v1/',
 			);
 		}
 
@@ -1900,11 +1917,11 @@ class GWiz_GF_OpenAI extends GFFeedAddOn
 	{
 		$settings = $this->get_plugin_settings();
 		$secret_key = $this->getBestSecretKey();
-		
+
 		// Log the retrieved settings and secret key
 		$this->log_debug("Settings: " . print_r($settings, true));
 		$this->log_debug("Selected Secret Key: " . $secret_key);
-		
+
 		$organization = $settings["organization_$secret_key"];
 		$api_key = $settings['api_key'];
 
@@ -1917,9 +1934,9 @@ class GWiz_GF_OpenAI extends GFFeedAddOn
 		if ($organization) {
 			$headers['OpenAI-Organization'] = $organization;
 		}
-		
+
 		// Log the constructed headers
-    	$this->log_debug("Headers: " . print_r($headers, true));
+		$this->log_debug("Headers: " . print_r($headers, true));
 
 		return $headers;
 	}
