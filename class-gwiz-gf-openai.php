@@ -601,14 +601,45 @@ class GWiz_GF_OpenAI extends GFFeedAddOn
 		// Create a new section for API Provider
 		$api_provider_fields = array();
 
-		// Get all user roles
-		$editable_roles = get_editable_roles();
+		$items_to_check = array();
 
-		foreach ($editable_roles as $role => $details) {
+		// Check for MemberPress memberships
+		if (class_exists('MeprProduct')) {
+			$memberships = MeprProduct::get_all();
+			if (!empty($memberships)) {
+				foreach ($memberships as $membership) {
+					$items_to_check[] = array(
+						'type' => 'membership',
+						'name' => $membership->post_title
+					);
+				}
+				// Add an option for users without a membership
+				$items_to_check[] = array(
+					'type' => 'no_membership',
+					'name' => 'No Membership'
+				);
+			}
+		}
+
+		// Fallback to roles if no memberships are available
+		if (empty($items_to_check)) {
+			$editable_roles = get_editable_roles();
+			foreach ($editable_roles as $role => $details) {
+				$items_to_check[] = array(
+					'type' => 'role',
+					'name' => $role
+				);
+			}
+		}
+
+		foreach ($items_to_check as $item) {
+			$identifier = $item['type'] == 'membership' ? sanitize_key($item['name']) : $item['name'];
+			$display_name = ucfirst($item['name']);
+
 			$api_provider_fields[] = array(
-				'name' => 'api_base_' . $role,
-				'tooltip' => 'Select the API Provider to use for ' . $role,
-				'label' => __('API Provider for ' . ucfirst($role), 'gravityforms-openai'),
+				'name' => 'api_base_' . $identifier,
+				'tooltip' => 'Select the API Provider to use for ' . $display_name,
+				'label' => __('API Provider for ' . $display_name, 'gravityforms-openai'),
 				'type' => 'radio',
 				'choices' => array(
 					array(
