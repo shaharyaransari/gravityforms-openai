@@ -610,13 +610,13 @@ class GWiz_GF_OpenAI extends GFFeedAddOn
 				foreach ($memberships as $membership) {
 					$items_to_check[] = array(
 						'type' => 'membership',
-						'name' => $membership->post_title
+						'name' => $membership->post_name
 					);
 				}
 				// Add an option for users without a membership
 				$items_to_check[] = array(
 					'type' => 'no_membership',
-					'name' => 'No Membership'
+					'name' => 'No_membership'
 				);
 			}
 		}
@@ -1626,6 +1626,7 @@ class GWiz_GF_OpenAI extends GFFeedAddOn
 	 *
 	 * @return string The text with merge tags processed.
 	 */
+	
 	public function replace_merge_tags($text, $form, $entry, $url_encode, $esc_html, $nl2br, $format)
 	{
 		// Process merge tags only if they are an openai feed.
