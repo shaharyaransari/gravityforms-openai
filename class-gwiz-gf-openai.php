@@ -593,9 +593,35 @@ class GWiz_GF_OpenAI extends GFFeedAddOn
 					array('value' => 'chat/completions', 'label' => __('Chat Completions', 'gravityforms-openai'), 'tooltip' => 'openai_endpoint_chat_completions'),
 					array('value' => 'edits', 'label' => __('Edits', 'gravityforms-openai'), 'tooltip' => 'openai_endpoint_edits'),
 					array('value' => 'moderations', 'label' => __('Moderations', 'gravityforms-openai'), 'tooltip' => 'openai_endpoint_moderations'),
+					// Add Whisper endpoint choice
+					array('value' => 'whisper', 'label' => __('Whisper (Audio Transcriptions)', 'gravityforms-openai'))
 				),
 				'default_value' => 'completions',
 			),
+		);
+
+		// Whisper API Settings
+		$whisper_fields = array(
+			array(
+				'name' => 'whisper_model',
+				'tooltip' => 'Select the Whisper model to use.',
+				'label' => __('Whisper Model', 'gravityforms-openai'),
+				'type' => 'radio',
+				'choices' => array(
+					array('value' => 'whisper-1', 'label' => __('Whisper Model 1', 'gravityforms-openai')),
+					// Add other model options as needed
+				),
+				'required' => true,
+			),
+			array(
+				'name' => 'whisper_file_field',
+				'type' => 'field_select',
+				'label' => __('Select File Upload Field', 'gravityforms-openai'),
+				'description' => __('Choose the file upload field to use for Whisper API.', 'gravityforms-openai'),
+				// Other properties as needed
+			),
+			$this->feed_setting_map_result_to_field('whisper')
+			// Add other settings as needed
 		);
 
 		// Create a new section for API Provider
@@ -847,6 +873,19 @@ class GWiz_GF_OpenAI extends GFFeedAddOn
 						array(
 							'field' => 'endpoint',
 							'values' => array('moderations'),
+						),
+					),
+				),
+			),
+			array(
+				'title' => 'Whisper API Settings',
+				'fields' => $whisper_fields,
+				'dependency' => array(
+					'live' => true,
+					'fields' => array(
+						array(
+							'field' => 'endpoint',
+							'values' => array('whisper'),
 						),
 					),
 				),
@@ -1195,6 +1234,10 @@ class GWiz_GF_OpenAI extends GFFeedAddOn
 				$this->process_endpoint_moderations($feed, $entry, $form);
 				break;
 
+			case 'whisper':
+				$entry = $this->process_endpoint_whisper($feed, $entry, $form);
+				break;
+
 			default:
 				// translators: placeholder is an unknown OpenAI endpoint.
 				$this->add_feed_error(sprintf(__('Unknown endpoint: %s'), $endpoint), $feed, $entry, $form);
@@ -1377,6 +1420,111 @@ class GWiz_GF_OpenAI extends GFFeedAddOn
 		return $entry;
 	}
 
+	public function process_endpoint_whisper($feed, $entry, $form)
+	{
+		// Get the model and file field ID from the feed settings
+		$model = rgar($feed['meta'], 'whisper_model', 'whisper-1');
+		$file_field_id = rgar($feed['meta'], 'whisper_file_field');
+
+		// Get the file URL from the entry
+		$file_url = rgar($entry, $file_field_id);
+		$this->log_debug("File URL from entry: " . $file_url);
+
+		// Convert the URL to a path
+		$file_path = $this->convert_url_to_path($file_url);
+
+		// Check if the file is accessible
+		if (is_readable($file_path)) {
+			$this->log_debug("File is accessible: " . $file_path);
+
+			// Create the CURLFile object and proceed with your logic
+			$curl_file = curl_file_create($file_path, 'audio/mpeg', basename($file_path));
+			// ... continue with your request setup ...
+		} else {
+			$this->log_debug("File is not accessible or does not exist: " . $file_path);
+			// Handle the error - the file is not accessible
+			// You might want to return or throw an error here
+		}
+
+		$this->log_debug("CURLFile Object: " . print_r($curl_file, true));
+
+		// Prepare the request body
+		$body = array(
+			'file' => $curl_file,
+			'model' => $model
+		);
+		$this->log_debug("Request Body for Whisper API: " . print_r($body, true));
+
+
+		// Send the request to the Whisper API
+		$response = $this->make_request('audio/transcriptions', $body, $feed, 'whisper');
+
+		// Log the raw response
+		$this->log_debug("Raw Whisper API response: " . print_r($response, true));
+
+		// Handle the response
+		if (is_wp_error($response)) {
+			// If there was an error, log it and return.
+			$this->add_feed_error($response->get_error_message(), $feed, $entry, $form);
+			return $entry;
+		}
+
+		if (rgar($response, 'error')) {
+			$this->add_feed_error($response['error']['message'], $feed, $entry, $form);
+			return $entry;
+		}
+
+		$text = $this->get_text_from_response($response);
+
+		if (!is_wp_error($text)) {
+			GFAPI::add_note($entry['id'], 0, 'Whisper API Response (' . $feed['meta']['feed_name'] . ')', $text);
+			$entry = $this->maybe_save_result_to_field($feed, $entry, $form, $text);
+		} else {
+			$this->add_feed_error($text->get_error_message(), $feed, $entry, $form);
+		}
+
+		gform_add_meta($entry['id'], 'whisper_response_' . $feed['id'], $response['body']);
+
+		return $entry;
+	}
+
+	public function convert_url_to_path($url)
+	{
+		// Check if $url is in JSON format and decode it
+		if (is_string($url) && strpos($url, '[') === 0) {
+			$url = json_decode($url);
+			if (json_last_error() === JSON_ERROR_NONE && is_array($url)) {
+				$url = array_shift($url);
+			}
+		}
+		// Log the received URL
+		$this->log_debug("Received URL: " . print_r($url, true));
+
+		// Get the base directory of the WordPress uploads
+		$upload_dir = wp_upload_dir();
+		$upload_base_dir = $upload_dir['basedir'];
+
+		// Check if $url is an array and extract the first element
+		if (is_array($url)) {
+			$url = array_shift($url);
+			$this->log_debug("Extracted URL from array: " . $url);
+		}
+
+		// Extract the relative path from the URL
+		$relativeFilePath = str_replace($upload_dir['baseurl'], '', $url);
+		$this->log_debug("Relative file path: " . $relativeFilePath);
+
+		// Trim leading slashes to avoid double slashes in the final path
+		$relativeFilePath = ltrim($relativeFilePath, '/');
+
+		// Combine the base directory with the relative file path
+		$fullFilePath = $upload_base_dir . '/' . $relativeFilePath;
+
+		// Log the converted path for debugging
+		$this->log_debug("Converted URL to path: " . $fullFilePath);
+
+		return $fullFilePath;
+	}
 
 	/**
 	 * Saves the result to the selected field if configured.
@@ -1385,12 +1533,16 @@ class GWiz_GF_OpenAI extends GFFeedAddOn
 	 */
 	public function maybe_save_result_to_field($feed, $entry, $form, $text)
 	{
+		$this->log_debug("maybe_save_result_to_field called. Entry ID: " . $entry['id']);
 		$endpoint = rgars($feed, 'meta/endpoint');
 		$map_result_to_field = rgar(rgar($feed, 'meta'), $endpoint . '_map_result_to_field');
 
 		if (!is_numeric($map_result_to_field)) {
+			$this->log_debug("No field mapped to save the result.");
 			return $entry;
 		}
+
+		$this->log_debug("Mapping result to field ID: " . $map_result_to_field);
 
 		$field = GFAPI::get_field($form, (int) $map_result_to_field);
 
@@ -1404,7 +1556,9 @@ class GWiz_GF_OpenAI extends GFFeedAddOn
 
 		$entry[$map_result_to_field] = $text;
 
+		$this->log_debug("Processed text to save in field: " . $text);
 		GFAPI::update_entry_field($entry['id'], $map_result_to_field, $text);
+		$this->log_debug("Entry field updated. Field ID: " . $map_result_to_field . ", Text: " . $text);
 
 		gf_do_action(array('gf_openai_post_save_result_to_field', $form['id']), $text);
 
@@ -1626,7 +1780,7 @@ class GWiz_GF_OpenAI extends GFFeedAddOn
 	 *
 	 * @return string The text with merge tags processed.
 	 */
-	
+
 	public function replace_merge_tags($text, $form, $entry, $url_encode, $esc_html, $nl2br, $format)
 	{
 		// Process merge tags only if they are an openai feed.
@@ -1849,11 +2003,15 @@ class GWiz_GF_OpenAI extends GFFeedAddOn
 			$url .= '?api-version=2023-03-15-preview';
 		}
 
+		$cache_body = $body;
+		if (isset($cache_body['file']) && $cache_body['file'] instanceof CURLFile) {
+			unset($cache_body['file']); // Exclude the CURLFile object
+		}
 		$cache_key = sha1(
 			serialize(
 				array(
 					'url' => $url,
-					'body' => $body,
+					'body' => $cache_body, // Use modified body for cache key
 					'request_params' => $this->get_request_params($feed),
 				)
 			)
@@ -1869,6 +2027,62 @@ class GWiz_GF_OpenAI extends GFFeedAddOn
 
 		if ($use_cache && get_transient($transient)) {
 			return get_transient($transient);
+		}
+
+		$this->log_debug("Making request to endpoint: " . $endpoint);
+
+		// Adjust request for Whisper API
+		if ($endpoint === 'audio/transcriptions') {
+			// Special handling for Whisper API
+			$url = 'https://api.openai.com/v1/' . $endpoint; // Direct URL for Whisper API
+
+			$settings = $this->get_plugin_settings();
+			$secret_key = $this->getBestSecretKey();
+
+			// Create a new cURL resource
+			$ch = curl_init();
+
+			// Set the URL and other options
+			curl_setopt($ch, CURLOPT_URL, $url);
+			curl_setopt($ch, CURLOPT_POST, true);
+			curl_setopt($ch, CURLOPT_POSTFIELDS, $body);
+			curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+			curl_setopt(
+				$ch,
+				CURLOPT_HTTPHEADER,
+				array(
+					'Authorization: Bearer ' . $settings[$secret_key],
+					'Content-Type: multipart/form-data'
+				)
+			);
+
+			// Execute the request and capture the response
+			$response = curl_exec($ch);
+
+			// Check for cURL errors
+			if (curl_errno($ch)) {
+				$error_msg = curl_error($ch);
+				curl_close($ch);
+				$this->log_debug("Whisper API request error: " . $error_msg);
+				return;
+			}
+
+			// Close cURL resource
+			curl_close($ch);
+
+			// Process the response
+			$this->log_debug("Whisper API response: " . $response);
+
+			// Assuming the response is a JSON string, you might want to decode it
+			$response_data = json_decode($response, true);
+			if (json_last_error() !== JSON_ERROR_NONE) {
+				$this->log_debug("Error decoding JSON response: " . json_last_error_msg());
+				return;
+			}
+
+			// Handle the response data as needed
+
+			return $response_data;
 		}
 
 		switch ($endpoint) {
