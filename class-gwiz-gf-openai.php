@@ -1420,71 +1420,50 @@ class GWiz_GF_OpenAI extends GFFeedAddOn
 		return $entry;
 	}
 
-	public function process_endpoint_whisper($feed, $entry, $form)
-	{
-		// Get the model and file field ID from the feed settings
+	public function process_endpoint_whisper($feed, $entry, $form) {
 		$model = rgar($feed['meta'], 'whisper_model', 'whisper-1');
 		$file_field_id = rgar($feed['meta'], 'whisper_file_field');
-
-		// Get the file URL from the entry
-		$file_url = rgar($entry, $file_field_id);
-		$this->log_debug("File URL from entry: " . $file_url);
-
-		// Convert the URL to a path
-		$file_path = $this->convert_url_to_path($file_url);
-
-		// Check if the file is accessible
-		if (is_readable($file_path)) {
-			$this->log_debug("File is accessible: " . $file_path);
-
-			// Create the CURLFile object and proceed with your logic
-			$curl_file = curl_file_create($file_path, 'audio/mpeg', basename($file_path));
-			// ... continue with your request setup ...
-		} else {
-			$this->log_debug("File is not accessible or does not exist: " . $file_path);
-			// Handle the error - the file is not accessible
-			// You might want to return or throw an error here
+	
+		// Get the file URLs from the entry (assuming it returns an array of URLs)
+		$file_urls = rgar($entry, $file_field_id);
+		$combined_text = '';
+	
+		foreach ($file_urls as $file_url) {
+			$this->log_debug("File URL from entry: " . $file_url);
+	
+			$file_path = $this->convert_url_to_path($file_url);
+	
+			if (is_readable($file_path)) {
+				$this->log_debug("File is accessible: " . $file_path);
+				$curl_file = curl_file_create($file_path, 'audio/mpeg', basename($file_path));
+				$body = array('file' => $curl_file, 'model' => $model);
+	
+				$response = $this->make_request('audio/transcriptions', $body, $feed, 'whisper');
+				$this->log_debug("Raw Whisper API response: " . print_r($response, true));
+	
+				if (is_wp_error($response)) {
+					$this->add_feed_error($response->get_error_message(), $feed, $entry, $form);
+				} else if (rgar($response, 'error')) {
+					$this->add_feed_error($response['error']['message'], $feed, $entry, $form);
+				} else {
+					$text = $this->get_text_from_response($response);
+					if (!is_wp_error($text)) {
+						$combined_text .= $text . "\n"; // Append the text with a newline
+					} else {
+						$this->add_feed_error($text->get_error_message(), $feed, $entry, $form);
+					}
+				}
+			} else {
+				$this->log_debug("File is not accessible or does not exist: " . $file_path);
+			}
 		}
-
-		$this->log_debug("CURLFile Object: " . print_r($curl_file, true));
-
-		// Prepare the request body
-		$body = array(
-			'file' => $curl_file,
-			'model' => $model
-		);
-		$this->log_debug("Request Body for Whisper API: " . print_r($body, true));
-
-
-		// Send the request to the Whisper API
-		$response = $this->make_request('audio/transcriptions', $body, $feed, 'whisper');
-
-		// Log the raw response
-		$this->log_debug("Raw Whisper API response: " . print_r($response, true));
-
-		// Handle the response
-		if (is_wp_error($response)) {
-			// If there was an error, log it and return.
-			$this->add_feed_error($response->get_error_message(), $feed, $entry, $form);
-			return $entry;
+	
+		if (!empty($combined_text)) {
+			GFAPI::add_note($entry['id'], 0, 'Whisper API Response (' . $feed['meta']['feed_name'] . ')', $combined_text);
+			$entry = $this->maybe_save_result_to_field($feed, $entry, $form, $combined_text);
 		}
-
-		if (rgar($response, 'error')) {
-			$this->add_feed_error($response['error']['message'], $feed, $entry, $form);
-			return $entry;
-		}
-
-		$text = $this->get_text_from_response($response);
-
-		if (!is_wp_error($text)) {
-			GFAPI::add_note($entry['id'], 0, 'Whisper API Response (' . $feed['meta']['feed_name'] . ')', $text);
-			$entry = $this->maybe_save_result_to_field($feed, $entry, $form, $text);
-		} else {
-			$this->add_feed_error($text->get_error_message(), $feed, $entry, $form);
-		}
-
-		gform_add_meta($entry['id'], 'whisper_response_' . $feed['id'], $response['body']);
-
+	
+		gform_add_meta($entry['id'], 'whisper_response_' . $feed['id'], $combined_text);
 		return $entry;
 	}
 
