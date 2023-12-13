@@ -692,6 +692,21 @@ class GWiz_GF_OpenAI extends GFFeedAddOn
 			);
 		}
 
+		// Define dynamic fields based on memberships or roles for Chat Completion Endpoints
+		$dynamic_model_fields = array();
+		foreach ($items_to_check as $item) {
+			$identifier = $item['type'] == 'membership' ? sanitize_key($item['name']) : $item['name'];
+			$display_name = ucfirst($item['name']);
+
+			$dynamic_model_fields[] = array(
+				'name' => 'chat_completion_model_' . $identifier,
+				'label' => __('Chat Completion Model for ' . $display_name, 'gravityforms-openai'),
+				'type' => 'radio',
+				'choices' => $this->get_openai_model_choices('chat/completions'),
+				'tooltip' => __('Select the OpenAI Chat Completion model to use for ' . $display_name, 'gravityforms-openai'),
+			);
+		}
+
 		// Return the full settings array
 		return array(
 			array(
@@ -736,15 +751,7 @@ class GWiz_GF_OpenAI extends GFFeedAddOn
 			),
 			array(
 				'title' => 'Chat Completions',
-				'fields' => array(
-					array(
-						'name' => 'chat_completions_model',
-						'tooltip' => 'Select the OpenAI model to use.',
-						'label' => __('OpenAI Model', 'gravityforms-openai'),
-						'type' => 'radio',
-						'choices' => $this->get_openai_model_choices('chat/completions'),
-						'required' => true,
-					),
+				'fields' => array_merge($dynamic_model_fields, array(
 					array(
 						'name' => 'chat_completions_message',
 						'tooltip' => 'Enter the message to send to OpenAI.',
@@ -753,9 +760,21 @@ class GWiz_GF_OpenAI extends GFFeedAddOn
 						'class' => 'medium merge-tag-support mt-position-right',
 						'required' => true,
 					),
+					// New "Stream to front end" field
+					array(
+						'name' => 'stream_to_frontend',
+						'label' => 'Stream to front end',
+						'type' => 'radio',
+						'choices' => array(
+							array('label' => 'Yes', 'value' => 'yes'),
+							array('label' => 'No', 'value' => 'no')
+						),
+						'default_value' => 'Yes',
+						'tooltip' => 'Select whether to stream the chat completions to the front end.',
+					),
 					$this->feed_setting_enable_merge_tag('chat/completions'),
 					$this->feed_setting_map_result_to_field('chat/completions'),
-				),
+				)),
 				'dependency' => array(
 					'live' => true,
 					'fields' => array(
@@ -1312,7 +1331,11 @@ class GWiz_GF_OpenAI extends GFFeedAddOn
 	 */
 	public function process_endpoint_chat_completions($feed, $entry, $form)
 	{
-		$model = $feed['meta']['chat_completions_model'];
+		$primary_identifier = $this->get_user_primary_identifier();
+		$model_option_name = 'chat_completion_model_' . $primary_identifier;
+
+		// Get the model from feed metadata based on user's role or membership
+		$model = rgar($feed["meta"], $model_option_name);
 		$message = $feed['meta']['chat_completions_message'];
 
 		// Parse the merge tags in the message.
@@ -1955,6 +1978,36 @@ class GWiz_GF_OpenAI extends GFFeedAddOn
 	}
 
 	/**
+	 * Helper method to get user Memberpress membership or fall back to user role.
+	 */
+	public function get_user_primary_identifier()
+	{
+		$current_user = wp_get_current_user();
+
+		// Default role/membership
+		$primary_identifier = 'default';
+
+		// Check for MemberPress memberships
+		if (class_exists('MeprUser')) {
+			$mepr_user = new MeprUser($current_user->ID);
+			$active_memberships = $mepr_user->active_product_subscriptions();
+
+			if (!empty($active_memberships)) {
+				$primary_membership = get_post($active_memberships[0]);
+				if ($primary_membership) {
+					$primary_identifier = $primary_membership->post_name; // User has a membership
+				}
+			} else {
+				$primary_identifier = 'No_membership'; // No active membership
+			}
+		} else if (!empty($current_user->roles)) {
+			$primary_identifier = $current_user->roles[0]; // Fallback to user role
+		}
+
+		return $primary_identifier;
+	}
+
+	/**
 	 * Helper method to send a request to the OpenAI API but also cache it using runtime cache and transients.
 	 *
 	 * @param string $endpoint The OpenAI endpoint.
@@ -1967,10 +2020,8 @@ class GWiz_GF_OpenAI extends GFFeedAddOn
 	{
 		static $request_cache = array();
 
-		// Identify the user role
-		$current_user = wp_get_current_user();
-		$user_roles = $current_user->roles;
-		$primary_role = !empty($user_roles) ? $user_roles[0] : 'default';
+		// Identify the user meber ship or role
+		$primary_role = $this->get_user_primary_identifier();
 
 		// Get the saved API base for the user role from the feed settings
 		$option_name = 'api_base_' . $primary_role;
