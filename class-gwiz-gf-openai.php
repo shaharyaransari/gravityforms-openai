@@ -435,7 +435,7 @@ class GWiz_GF_OpenAI extends GFFeedAddOn
 						'type' => 'text',
 						'input_type' => 'password',
 						'class' => 'medium',
-						'required' => $i == 1,
+						'required' => false,
 					),
 					array(
 						'name' => "organization_$i",
@@ -451,6 +451,12 @@ class GWiz_GF_OpenAI extends GFFeedAddOn
 						'class' => 'medium',
 						'required' => false,
 					),
+					array(
+						'name' => "usage_count_$i",
+						'label' => "Usage Count $i",
+						'type' => 'text',
+						'class' => 'medium',
+					),
 				),
 			);
 		}
@@ -462,34 +468,27 @@ class GWiz_GF_OpenAI extends GFFeedAddOn
 	public function getBestSecretKey()
 	{
 		$settings = get_option('gravityformsaddon_gravityforms-openai_settings', array());
-		$usageCounts = get_option('secret_key_usage_counts', array_fill(1, 10, 0));
-
-		$this->log_debug("Settings: " . print_r($settings, true));
-		$this->log_debug("Usage Counts: " . print_r($usageCounts, true));
 
 		$minIndex = null;
 		$minUsage = PHP_INT_MAX;
 
 		for ($i = 1; $i <= 10; $i++) {
-			// Check if the current key exists in settings and has a value
 			$keyExistsAndHasValue = isset($settings["secret_key_$i"]) && !empty($settings["secret_key_$i"]);
-
 			if (!$keyExistsAndHasValue) {
-				continue; // If the key doesn't exist or is empty, continue checking
+				continue;
 			}
 
-			if ($usageCounts[$i] < $minUsage) {
+			$currentUsage = isset($settings["usage_count_$i"]) ? intval($settings["usage_count_$i"]) : 0;
+			if ($currentUsage < $minUsage) {
 				$minIndex = $i;
-				$minUsage = $usageCounts[$i];
+				$minUsage = $currentUsage;
 			}
 		}
 
 		if ($minIndex !== null) {
-			$usageCounts[$minIndex]++;
-			update_option('secret_key_usage_counts', $usageCounts);
+			$settings["usage_count_$minIndex"] = $minUsage + 1;
+			update_option('gravityformsaddon_gravityforms-openai_settings', $settings);
 		}
-
-		$this->log_debug("Selected key: secret_key_$minIndex");
 
 		return $minIndex !== null ? "secret_key_$minIndex" : null;
 	}
@@ -1420,27 +1419,28 @@ class GWiz_GF_OpenAI extends GFFeedAddOn
 		return $entry;
 	}
 
-	public function process_endpoint_whisper($feed, $entry, $form) {
+	public function process_endpoint_whisper($feed, $entry, $form)
+	{
 		$model = rgar($feed['meta'], 'whisper_model', 'whisper-1');
 		$file_field_id = rgar($feed['meta'], 'whisper_file_field');
-	
+
 		// Get the file URLs from the entry (assuming it returns an array of URLs)
 		$file_urls = rgar($entry, $file_field_id);
 		$combined_text = '';
-	
+
 		foreach ($file_urls as $file_url) {
 			$this->log_debug("File URL from entry: " . $file_url);
-	
+
 			$file_path = $this->convert_url_to_path($file_url);
-	
+
 			if (is_readable($file_path)) {
 				$this->log_debug("File is accessible: " . $file_path);
 				$curl_file = curl_file_create($file_path, 'audio/mpeg', basename($file_path));
 				$body = array('file' => $curl_file, 'model' => $model);
-	
+
 				$response = $this->make_request('audio/transcriptions', $body, $feed, 'whisper');
 				$this->log_debug("Raw Whisper API response: " . print_r($response, true));
-	
+
 				if (is_wp_error($response)) {
 					$this->add_feed_error($response->get_error_message(), $feed, $entry, $form);
 				} else if (rgar($response, 'error')) {
@@ -1457,12 +1457,12 @@ class GWiz_GF_OpenAI extends GFFeedAddOn
 				$this->log_debug("File is not accessible or does not exist: " . $file_path);
 			}
 		}
-	
+
 		if (!empty($combined_text)) {
 			GFAPI::add_note($entry['id'], 0, 'Whisper API Response (' . $feed['meta']['feed_name'] . ')', $combined_text);
 			$entry = $this->maybe_save_result_to_field($feed, $entry, $form, $combined_text);
 		}
-	
+
 		gform_add_meta($entry['id'], 'whisper_response_' . $feed['id'], $combined_text);
 		return $entry;
 	}
