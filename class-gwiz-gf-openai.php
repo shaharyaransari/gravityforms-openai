@@ -781,8 +781,9 @@ class GWiz_GF_OpenAI extends GFFeedAddOn
 						'label' => 'Stream to front end',
 						'type' => 'radio',
 						'choices' => array(
-							array('label' => 'Yes', 'value' => 'yes'),
-							array('label' => 'No', 'value' => 'no')
+							array('label' => 'As feedback', 'value' => 'yes'),
+							array('label' => 'No', 'value' => 'no'),
+							array('label' => 'As the answer', 'value' => 'text')
 						),
 						'default_value' => 'Yes',
 						'tooltip' => 'Select whether to stream the chat completions to the front end.',
