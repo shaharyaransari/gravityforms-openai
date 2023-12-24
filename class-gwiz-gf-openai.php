@@ -323,6 +323,15 @@ class GWiz_GF_OpenAI extends GFFeedAddOn
 				'gpt-4-32k' => array(
 					'description' => __('Same capabilities as the base gpt-4 mode but with 4x the context length. Will be updated with the latest model iteration.', 'gravityforms-openai'),
 				),
+				'gpt-4-vision' => array(
+					'description' => __('Same capabilities as the base gpt-4 mode but with Vision capabilities.', 'gravityforms-openai'),
+				),
+				'gemini-pro' => array(
+					'description' => __('Similar to GPT-3.5 models.', 'gravityforms-openai'),
+				),
+				'gemini-pro-vision' => array(
+					'description' => __('Similar to GPT-3.5 models but with Vision capabilities.', 'gravityforms-openai'),
+				),
 			),
 			'edits' => array(
 				'text-davinci-edit-001' => array(
@@ -752,6 +761,12 @@ class GWiz_GF_OpenAI extends GFFeedAddOn
 			array(
 				'title' => 'Chat Completions',
 				'fields' => array_merge($dynamic_model_fields, array(
+					array(
+						'name' => 'gpt_4_vision_image_link',
+						'label' => __('Image Link for GPT-4 Vision', 'gravityforms-openai'),
+						'type' => 'field_select',
+						'tooltip' => __('Select the field containing the image link for GPT-4 Vision.', 'gravityforms-openai'),
+					),
 					array(
 						'name' => 'chat_completions_message',
 						'tooltip' => 'Enter the message to send to OpenAI.',
@@ -1333,6 +1348,13 @@ class GWiz_GF_OpenAI extends GFFeedAddOn
 	{
 		$primary_identifier = $this->get_user_primary_identifier();
 		$model_option_name = 'chat_completion_model_' . $primary_identifier;
+		// Retrieve the field ID for the image link and then get the URL from the entry
+        $image_link_field_id = rgar($feed["meta"], 'gpt_4_vision_image_link');
+        $image_link_json = rgar($entry, $image_link_field_id);
+
+        // Decode the JSON string to extract the URL
+        $image_link_array = json_decode($image_link_json, true);
+        $image_link = $image_link_array ? reset($image_link_array) : ''; // Get the first element of the array
 
 		// Get the model from feed metadata based on user's role or membership
 		$model = rgar($feed["meta"], $model_option_name);
@@ -1346,15 +1368,30 @@ class GWiz_GF_OpenAI extends GFFeedAddOn
 		// translators: placeholders are the feed name, model, prompt
 		$this->log_debug(__METHOD__ . '(): ' . sprintf(__('Sent request to OpenAI. Feed: %1$s, Endpoint: chat, Model: %2$s, Message: %3$s', 'gravityforms-openai'), $feed['meta']['feed_name'], $model, $message));
 
-		$response = $this->make_request('chat/completions', array(
+		// Check if the model is GPT-4 Vision and if the image link is not empty
+		if (strpos($model, 'vision') !== false && !empty($image_link)) {
+			// Construct content with text and image URL
+			$content = array(
+				array('type' => 'text', 'text' => $message),
+				array('type' => 'image_url', 'image_url' => array('url' => $image_link))
+			);
+		} else {
+			// Construct content with only text
+			$content = $message;
+		}
+	
+		// Create the request payload
+		$request_payload = array(
 			'messages' => array(
 				array(
 					'role' => 'user',
-					'content' => $message,
+					'content' => $content
 				),
 			),
 			'model' => $model,
-		), $feed);
+		);
+	
+		$response = $this->make_request('chat/completions', $request_payload, $feed);
 
 		if (is_wp_error($response)) {
 			// If there was an error, log it and return.
