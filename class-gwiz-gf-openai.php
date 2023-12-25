@@ -781,9 +781,10 @@ class GWiz_GF_OpenAI extends GFFeedAddOn
 						'label' => 'Stream to front end',
 						'type' => 'radio',
 						'choices' => array(
-							array('label' => 'As feedback', 'value' => 'yes'),
+							array('label' => 'As Feedback', 'value' => 'yes'),
 							array('label' => 'No', 'value' => 'no'),
-							array('label' => 'As the answer', 'value' => 'text')
+							array('label' => 'As the answer', 'value' => 'text'),
+							array('label' => 'As the question', 'value' => 'question')
 						),
 						'default_value' => 'Yes',
 						'tooltip' => 'Select whether to stream the chat completions to the front end.',
@@ -1350,12 +1351,12 @@ class GWiz_GF_OpenAI extends GFFeedAddOn
 		$primary_identifier = $this->get_user_primary_identifier();
 		$model_option_name = 'chat_completion_model_' . $primary_identifier;
 		// Retrieve the field ID for the image link and then get the URL from the entry
-        $image_link_field_id = rgar($feed["meta"], 'gpt_4_vision_image_link');
-        $image_link_json = rgar($entry, $image_link_field_id);
+		$image_link_field_id = rgar($feed["meta"], 'gpt_4_vision_image_link');
+		$image_link_json = rgar($entry, $image_link_field_id);
 
-        // Decode the JSON string to extract the URL
-        $image_link_array = json_decode($image_link_json, true);
-        $image_link = $image_link_array ? reset($image_link_array) : ''; // Get the first element of the array
+		// Decode the JSON string to extract the URL
+		$image_link_array = json_decode($image_link_json, true);
+		$image_link = $image_link_array ? reset($image_link_array) : ''; // Get the first element of the array
 
 		// Get the model from feed metadata based on user's role or membership
 		$model = rgar($feed["meta"], $model_option_name);
@@ -1380,7 +1381,7 @@ class GWiz_GF_OpenAI extends GFFeedAddOn
 			// Construct content with only text
 			$content = $message;
 		}
-	
+
 		// Create the request payload
 		$request_payload = array(
 			'messages' => array(
@@ -1391,7 +1392,7 @@ class GWiz_GF_OpenAI extends GFFeedAddOn
 			),
 			'model' => $model,
 		);
-	
+
 		$response = $this->make_request('chat/completions', $request_payload, $feed);
 
 		if (is_wp_error($response)) {
