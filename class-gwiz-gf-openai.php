@@ -746,6 +746,34 @@ class GWiz_GF_OpenAI extends GFFeedAddOn
 				'fields' => $api_provider_fields,
 			),
 			array(
+				'title' => 'Lorax Setting',
+				'fields' => array(
+					array(
+						'name' => 'chat_completions_lora_adapter',
+						'label' => 'Lora Adapter',
+						'type' => 'text',
+						'tooltip' => 'Enter the Lora Adapter to use for Mistral 7b Instruct v0.1.',
+						'class' => 'small',
+					),
+					array(
+						'name' => 'chat_completions_lorax_message',
+						'tooltip' => 'Enter the message to send to LoraX.',
+						'label' => 'Lorax Message',
+						'type' => 'textarea',
+						'class' => 'medium merge-tag-support mt-position-right',
+					),
+				),
+				'dependency' => array(
+					'live' => true,
+					'fields' => array(
+						array(
+							'field' => 'endpoint',
+							'values' => array('chat/completions'),
+						),
+					),
+				),
+			),
+			array(
 				'title' => 'Completions',
 				'fields' => array(
 					array(
@@ -780,13 +808,6 @@ class GWiz_GF_OpenAI extends GFFeedAddOn
 			array(
 				'title' => 'Chat Completions',
 				'fields' => array_merge($dynamic_model_fields, array(
-					array(
-						'name' => 'chat_completions_lora_adapter',
-						'label' => 'Lora Adapter',
-						'type' => 'text',
-						'tooltip' => 'Enter the Lora Adapter to use for Mistral 7b Instruct v0.1.',
-						'class' => 'small',
-					),
 					array(
 						'name' => 'gpt_4_vision_image_link',
 						'label' => __('Image Link for GPT-4 Vision', 'gravityforms-openai'),
@@ -1375,7 +1396,7 @@ class GWiz_GF_OpenAI extends GFFeedAddOn
 	public function process_endpoint_chat_completions($feed, $entry, $form)
 	{
 		$primary_identifier = $this->get_user_primary_identifier();
-		$model_option_name = 'chat_completion_model_' . $primary_identifier;
+		$api_base = rgar($feed['meta'], "api_base_$primary_identifier", 'https://api.openai.com/v1/');
 		// Retrieve the field ID for the image link and then get the URL from the entry
 		$image_link_field_id = rgar($feed["meta"], 'gpt_4_vision_image_link');
 		$image_link_json = rgar($entry, $image_link_field_id);
@@ -1384,9 +1405,15 @@ class GWiz_GF_OpenAI extends GFFeedAddOn
 		$image_link_array = json_decode($image_link_json, true);
 		$image_link = $image_link_array ? reset($image_link_array) : ''; // Get the first element of the array
 
-		// Get the model from feed metadata based on user's role or membership
-		$model = rgar($feed["meta"], $model_option_name);
-		$message = $feed['meta']['chat_completions_message'];
+		// Get the model and message from the feed settings
+		if (strpos($api_base, 'predibase') !== false) {
+			$model = $feed["meta"]['chat_completions_lora_adapter'];
+			$message = $feed["meta"]["chat_completions_lorax_message"];
+		} else {
+			// Get the model from feed metadata based on user's role or membership
+			$model = $feed["meta"]["chat_completion_model_$primary_identifier"];
+			$message = $feed["meta"]["chat_completions_message"];
+		}
 
 		// Parse the merge tags in the message.
 		$message = GFCommon::replace_variables($message, $form, $entry, false, false, false, 'text');
