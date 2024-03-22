@@ -195,13 +195,13 @@ class GWiz_GF_OpenAI extends GFFeedAddOn
 
 		$this->updater = new GWiz_GF_OpenAI\Dependencies\Inc2734\WP_GitHub_Plugin_Updater\Bootstrap(
 			plugin_basename(plugin_dir_path(__FILE__) . 'gravityforms-openai.php'),
-			'gravitywiz',
+			'bi1101',
 			'gravityforms-openai',
 			array(
-				'description_url' => 'https://raw.githubusercontent.com/gravitywiz/gravityforms-openai/master/readme.md',
-				'changelog_url' => 'https://raw.githubusercontent.com/gravitywiz/gravityforms-openai/master/changelog.txt',
+				'description_url' => 'https://raw.githubusercontent.com/bi1101/gravityforms-openai/master/readme.md',
+				'changelog_url' => 'https://raw.githubusercontent.com/bi1101/gravityforms-openai/master/changelog.txt',
 				'icons' => array(
-					'svg' => 'https://raw.githubusercontent.com/gravitywiz/gravityforms-openai/master/icon.svg',
+					'svg' => 'https://raw.githubusercontent.com/bi1101/gravityforms-openai/master/icon.svg',
 				),
 				'banners' => array(
 					'low' => 'https://gravitywiz.com/wp-content/uploads/2022/12/gfoai-by-dalle-1.png',
