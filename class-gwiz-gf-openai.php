@@ -437,6 +437,20 @@ class GWiz_GF_OpenAI extends GFFeedAddOn
 						// Only the first key is required
 					),
 					array(
+						'name' => "pb_key_$i",
+						'tooltip' => __('Enter your Predibase API Key.', 'gravityforms-openai'),
+						'description' => '<a href="https://app.predibase.com/settings" target="_blank">Predibase Settings</a><br />'
+							. sprintf(
+								__('Example: %s', 'gravityforms-openai'),
+								'<code>pb_cmKe******************</code>'
+							),
+						'label' => "Predibase API $i",
+						'type' => 'text',
+						'input_type' => 'password',
+						'class' => 'medium',
+						'required' => false,
+					),
+					array(
 						'name' => "api_key_$i",
 						'tooltip' => __('Enter your Azure OpenAI API key.', 'gravityforms-openai'),
 						'description' => __('Key for Azure OpenAI API.'),
@@ -499,7 +513,7 @@ class GWiz_GF_OpenAI extends GFFeedAddOn
 			update_option('gravityformsaddon_gravityforms-openai_settings', $settings);
 		}
 
-		return $minIndex !== null ? "secret_key_$minIndex" : null;
+		return $minIndex;
 	}
 
 
@@ -554,9 +568,9 @@ class GWiz_GF_OpenAI extends GFFeedAddOn
 		$models = rgar($this->get_openai_models(), $endpoint);
 
 		// Add user models to completions models.
-		if ($endpoint === 'completions') {
+		/* if ($endpoint === 'completions') {
 			$models = array_merge($models, $this->get_user_models());
-		}
+		} */
 
 		if (!$models) {
 			return array();
@@ -695,7 +709,12 @@ class GWiz_GF_OpenAI extends GFFeedAddOn
 						'value' => 'https://writify.openai.azure.com/openai/deployments/IELTS-Writify/',
 						'label' => __('Azure OpenAI API', 'gravityforms-openai'),
 						'tooltip' => 'API Provider: https://writify.openai.azure.com/openai/deployments/IELTS-Writify/'
-					)
+					),
+					array(
+						'value' => 'https://serving.app.predibase.com/6266f0/deployments/v2/llms/mistral-7b-instruct/v1/',
+						'label' => __('Predibase Mistral-7b-instruct', 'gravityforms-openai'),
+						'tooltip' => 'API Provider: https://serving.app.predibase.com/6266f0/deployments/v2/llms/mistral-7b-instruct/v1/'
+					),
 				),
 				'default_value' => 'https://api2.ieltsscience.fun/v1/',
 			);
@@ -761,6 +780,13 @@ class GWiz_GF_OpenAI extends GFFeedAddOn
 			array(
 				'title' => 'Chat Completions',
 				'fields' => array_merge($dynamic_model_fields, array(
+					array(
+						'name' => 'chat_completions_lora_adapter',
+						'label' => 'Lora Adapter',
+						'type' => 'text',
+						'tooltip' => 'Enter the Lora Adapter to use for Mistral 7b Instruct v0.1.',
+						'class' => 'small',
+					),
 					array(
 						'name' => 'gpt_4_vision_image_link',
 						'label' => __('Image Link for GPT-4 Vision', 'gravityforms-openai'),
@@ -1883,6 +1909,7 @@ class GWiz_GF_OpenAI extends GFFeedAddOn
 	{
 		$feed = $this->get_feed($feed_id);
 		$endpoint = rgars($feed, 'meta/endpoint');
+		$primary_identifier = $this->get_user_primary_identifier();
 
 		if (!$endpoint || (int) rgar($feed, 'form_id') !== (int) rgar($form, 'id')) {
 			return '';
@@ -1906,7 +1933,7 @@ class GWiz_GF_OpenAI extends GFFeedAddOn
 				$prompt = GFCommon::replace_variables($prompt, $form, $entry, false, false, false, 'text');
 
 				// If prompt is empty, do not generate any completion response, skip with blank.
-				if (empty($prompt)) {
+				if (empty ($prompt)) {
 					return '';
 				}
 
@@ -1921,13 +1948,21 @@ class GWiz_GF_OpenAI extends GFFeedAddOn
 				break;
 
 			case 'chat/completions':
-				$model = $feed['meta']['chat_completions_model'];
+				$api_base = rgar($feed['meta'], "api_base_$primary_identifier", 'https://api.openai.com/v1/');
+
+				if (strpos($api_base, 'predibase') !== false) {
+					// Get the model from feed metadata based on user's role or membership
+					$model = $feed["meta"]['chat_completions_lora_adapter'];
+				} else {
+					// Get the model from feed metadata based on user's role or membership
+					$model = $feed["meta"]["chat_completion_model_$primary_identifier"];
+				}
 				$message = $feed['meta']['chat_completions_message'];
 
 				$message = GFCommon::replace_variables($message, $form, $entry, false, false, false, 'text');
 
 				// If message is empty, do not generate any chat response, skip with blank.
-				if (empty($message)) {
+				if (empty ($message)) {
 					return '';
 				}
 
@@ -1955,7 +1990,7 @@ class GWiz_GF_OpenAI extends GFFeedAddOn
 				$instruction = GFCommon::replace_variables($instruction, $form, $entry, false, false, false, 'text');
 
 				// If input or instruction is empty, do not generate any edit response, skip with blank.
-				if (empty($input) || empty($instruction)) {
+				if (empty ($input) || empty ($instruction)) {
 					return '';
 				}
 
@@ -2031,7 +2066,7 @@ class GWiz_GF_OpenAI extends GFFeedAddOn
 			$mepr_user = new MeprUser($current_user->ID);
 			$active_memberships = $mepr_user->active_product_subscriptions();
 
-			if (!empty($active_memberships)) {
+			if (!empty ($active_memberships)) {
 				$primary_membership = get_post($active_memberships[0]);
 				if ($primary_membership) {
 					$primary_identifier = $primary_membership->post_name; // User has a membership
@@ -2039,7 +2074,7 @@ class GWiz_GF_OpenAI extends GFFeedAddOn
 			} else {
 				$primary_identifier = 'No_membership'; // No active membership
 			}
-		} else if (!empty($current_user->roles)) {
+		} else if (!empty ($current_user->roles)) {
 			$primary_identifier = $current_user->roles[0]; // Fallback to user role
 		}
 
@@ -2215,7 +2250,7 @@ class GWiz_GF_OpenAI extends GFFeedAddOn
 	{
 		$endpoint = rgars($feed, 'meta/endpoint');
 		$default_timeout = rgar(rgar($this->default_settings, $endpoint), 'timeout');
-		$headers = $this->get_headers();
+		$headers = $this->get_headers($feed);
 
 		return array(
 			'headers' => $headers,
@@ -2228,21 +2263,34 @@ class GWiz_GF_OpenAI extends GFFeedAddOn
 	 *
 	 * @return array
 	 */
-	public function get_headers()
+	public function get_headers($feed = array())
 	{
+		// Identify the user meber ship or role
+		$primary_identifier = $this->get_user_primary_identifier();
+
+		// Get the saved API base for the user role from the feed settings
+		$option_name = 'api_base_' . $primary_identifier;
+		$api_base = rgar($feed['meta'], $option_name, 'https://api.openai.com/v1/');
+
 		$settings = $this->get_plugin_settings();
-		$secret_key = $this->getBestSecretKey();
+		$secret_key_index = $this->getBestSecretKey();
 
 		// Log the retrieved settings and secret key
 		$this->log_debug("Settings: " . print_r($settings, true));
-		$this->log_debug("Selected Secret Key: " . $secret_key);
+		$this->log_debug("Selected Secret Key: " . $secret_key_index);
 
-		$organization = $settings["organization_$secret_key"];
-		$api_key = $settings['api_key'];
+		$organization = $settings["organization_$secret_key_index"];
+
+		$api_key = $settings["api_key_$secret_key_index"];
+		if (strpos($api_base, 'predibase') !== false) {
+			$secret_key = $settings["pb_key_$secret_key_index"];
+		} else {
+			$secret_key = $settings["secret_key_$secret_key_index"];
+		}
 
 		$headers = array(
 			'Content-Type' => 'application/json',
-			'Authorization' => 'Bearer ' . $settings[$secret_key],
+			'Authorization' => 'Bearer ' . $secret_key,
 			'api-key' => $api_key,
 		);
 
