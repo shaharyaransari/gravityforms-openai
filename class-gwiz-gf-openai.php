@@ -2168,7 +2168,7 @@ class GWiz_GF_OpenAI extends GFFeedAddOn
 			$url = 'https://api.openai.com/v1/' . $endpoint; // Direct URL for Whisper API
 
 			$settings = $this->get_plugin_settings();
-			$secret_key = $this->getBestSecretKey();
+			$secret_key_index = $this->getBestSecretKey();
 
 			// Create a new cURL resource
 			$ch = curl_init();
@@ -2182,7 +2182,7 @@ class GWiz_GF_OpenAI extends GFFeedAddOn
 				$ch,
 				CURLOPT_HTTPHEADER,
 				array(
-					'Authorization: Bearer ' . $settings[$secret_key],
+					'Authorization: Bearer ' . $settings["secret_key_$secret_key_index"],
 					'Content-Type: multipart/form-data'
 				)
 			);
