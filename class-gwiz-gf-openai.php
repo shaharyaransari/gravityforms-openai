@@ -317,13 +317,13 @@ class GWiz_GF_OpenAI extends GFFeedAddOn
 				'gpt-3.5-turbo-16k' => array(
 					'description' => __('Same capabilities as the standard gpt-3.5-turbo model but with 4x the context length.', 'gravityforms-openai'),
 				),
-				'gpt-4' => array(
+				'gpt-4-turbo-preview' => array(
 					'description' => __('More capable than any GPT-3.5 model, able to do more complex tasks, and optimized for chat. Will be updated with the latest model iteration.', 'gravityforms-openai'),
 				),
 				'gpt-4-32k' => array(
 					'description' => __('Same capabilities as the base gpt-4 mode but with 4x the context length. Will be updated with the latest model iteration.', 'gravityforms-openai'),
 				),
-				'gpt-4-vision' => array(
+				'gpt-4-vision-preview' => array(
 					'description' => __('Same capabilities as the base gpt-4 mode but with Vision capabilities.', 'gravityforms-openai'),
 				),
 				'gemini-pro' => array(
