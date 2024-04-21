@@ -171,7 +171,7 @@ class GWiz_GF_OpenAI extends GFFeedAddOn
 
 		spl_autoload_register(
 			function ($class) use ($class_map) {
-				if (isset($class_map[$class]) && substr($class, 0, 27) === 'GWiz_GF_OpenAI\\Dependencies') {
+				if (isset ($class_map[$class]) && substr($class, 0, 27) === 'GWiz_GF_OpenAI\\Dependencies') {
 					require_once $class_map[$class];
 				}
 			},
@@ -569,8 +569,8 @@ class GWiz_GF_OpenAI extends GFFeedAddOn
 
 		// Add user models to completions models.
 		/* if ($endpoint === 'completions') {
-			$models = array_merge($models, $this->get_user_models());
-		} */
+							  $models = array_merge($models, $this->get_user_models());
+						  } */
 
 		if (!$models) {
 			return array();
@@ -715,6 +715,11 @@ class GWiz_GF_OpenAI extends GFFeedAddOn
 						'label' => __('Predibase Mistral-7b-instruct', 'gravityforms-openai'),
 						'tooltip' => 'API Provider: https://serving.app.predibase.com/6266f0/deployments/v2/llms/mistral-7b-instruct/v1/'
 					),
+					array(
+						'value' => 'https://POD_ID-80.proxy.runpod.net/v1/',
+						'label' => __('RunPod Mistral-7b-instruct v0.1', 'gravityforms-openai'),
+						'tooltip' => 'API Provider: https://POD_ID-80.proxy.runpod.net/v1/'
+					),
 				),
 				'default_value' => 'https://api2.ieltsscience.fun/v1/',
 			);
@@ -746,6 +751,18 @@ class GWiz_GF_OpenAI extends GFFeedAddOn
 				'fields' => $api_provider_fields,
 			),
 			array(
+				'title' => 'Runpod Settings',
+				'fields' => array(
+					array(
+						'name' => 'runpod_pod_id',
+						'label' => 'RunPod Pod ID',
+						'type' => 'text',
+						'tooltip' => 'Enter the RunPod Pod ID to use for Mistral 7b Instruct v0.1',
+						'class' => 'small',
+					),
+				),
+			),
+			array(
 				'title' => 'Lorax Setting',
 				'fields' => array(
 					array(
@@ -753,6 +770,13 @@ class GWiz_GF_OpenAI extends GFFeedAddOn
 						'label' => 'Lora Adapter',
 						'type' => 'text',
 						'tooltip' => 'Enter the Lora Adapter to use for Mistral 7b Instruct v0.1.',
+						'class' => 'small',
+					),
+					array(
+						'name' => 'chat_completions_lora_adapter_HF',
+						'label' => 'Lora Adapter HF',
+						'type' => 'text',
+						'tooltip' => 'Enter the Huggingface Lora Adapter to use for Mistral 7b Instruct v0.1.',
 						'class' => 'small',
 					),
 					array(
@@ -807,38 +831,41 @@ class GWiz_GF_OpenAI extends GFFeedAddOn
 			),
 			array(
 				'title' => 'Chat Completions',
-				'fields' => array_merge($dynamic_model_fields, array(
+				'fields' => array_merge(
+					$dynamic_model_fields,
 					array(
-						'name' => 'gpt_4_vision_image_link',
-						'label' => __('Image Link for GPT-4 Vision', 'gravityforms-openai'),
-						'type' => 'field_select',
-						'tooltip' => __('Select the field containing the image link for GPT-4 Vision.', 'gravityforms-openai'),
-					),
-					array(
-						'name' => 'chat_completions_message',
-						'tooltip' => 'Enter the message to send to OpenAI.',
-						'label' => 'Message',
-						'type' => 'textarea',
-						'class' => 'medium merge-tag-support mt-position-right',
-						'required' => true,
-					),
-					// New "Stream to front end" field
-					array(
-						'name' => 'stream_to_frontend',
-						'label' => 'Stream to front end',
-						'type' => 'radio',
-						'choices' => array(
-							array('label' => 'As Feedback', 'value' => 'yes'),
-							array('label' => 'No', 'value' => 'no'),
-							array('label' => 'As the answer', 'value' => 'text'),
-							array('label' => 'As the question', 'value' => 'question')
+						array(
+							'name' => 'gpt_4_vision_image_link',
+							'label' => __('Image Link for GPT-4 Vision', 'gravityforms-openai'),
+							'type' => 'field_select',
+							'tooltip' => __('Select the field containing the image link for GPT-4 Vision.', 'gravityforms-openai'),
 						),
-						'default_value' => 'Yes',
-						'tooltip' => 'Select whether to stream the chat completions to the front end.',
-					),
-					$this->feed_setting_enable_merge_tag('chat/completions'),
-					$this->feed_setting_map_result_to_field('chat/completions'),
-				)),
+						array(
+							'name' => 'chat_completions_message',
+							'tooltip' => 'Enter the message to send to OpenAI.',
+							'label' => 'Message',
+							'type' => 'textarea',
+							'class' => 'medium merge-tag-support mt-position-right',
+							'required' => true,
+						),
+						// New "Stream to front end" field
+						array(
+							'name' => 'stream_to_frontend',
+							'label' => 'Stream to front end',
+							'type' => 'radio',
+							'choices' => array(
+								array('label' => 'As Feedback', 'value' => 'yes'),
+								array('label' => 'No', 'value' => 'no'),
+								array('label' => 'As the answer', 'value' => 'text'),
+								array('label' => 'As the question', 'value' => 'question')
+							),
+							'default_value' => 'Yes',
+							'tooltip' => 'Select whether to stream the chat completions to the front end.',
+						),
+						$this->feed_setting_enable_merge_tag('chat/completions'),
+						$this->feed_setting_map_result_to_field('chat/completions'),
+					)
+				),
 				'dependency' => array(
 					'live' => true,
 					'fields' => array(
@@ -1409,6 +1436,9 @@ class GWiz_GF_OpenAI extends GFFeedAddOn
 		if (strpos($api_base, 'predibase') !== false) {
 			$model = $feed["meta"]['chat_completions_lora_adapter'];
 			$message = $feed["meta"]["chat_completions_lorax_message"];
+		} elseif (strpos($api_base, 'runpod') !== false) {
+			$model = $feed["meta"]['chat_completions_lora_adapter_HF'];
+			$message = $feed["meta"]["chat_completions_lorax_message"];
 		} else {
 			// Get the model from feed metadata based on user's role or membership
 			$model = $feed["meta"]["chat_completion_model_$primary_identifier"];
@@ -1960,7 +1990,7 @@ class GWiz_GF_OpenAI extends GFFeedAddOn
 				$prompt = GFCommon::replace_variables($prompt, $form, $entry, false, false, false, 'text');
 
 				// If prompt is empty, do not generate any completion response, skip with blank.
-				if (empty ($prompt)) {
+				if (empty($prompt)) {
 					return '';
 				}
 
@@ -1980,6 +2010,9 @@ class GWiz_GF_OpenAI extends GFFeedAddOn
 				if (strpos($api_base, 'predibase') !== false) {
 					// Get the model from feed metadata based on user's role or membership
 					$model = $feed["meta"]['chat_completions_lora_adapter'];
+				} elseif (strpos($api_base, 'runpod') !== false) {
+					// Get the model from feed metadata based on user's role or membership
+					$model = $feed["meta"]['chat_completions_lora_adapter_HF'];
 				} else {
 					// Get the model from feed metadata based on user's role or membership
 					$model = $feed["meta"]["chat_completion_model_$primary_identifier"];
@@ -1989,7 +2022,7 @@ class GWiz_GF_OpenAI extends GFFeedAddOn
 				$message = GFCommon::replace_variables($message, $form, $entry, false, false, false, 'text');
 
 				// If message is empty, do not generate any chat response, skip with blank.
-				if (empty ($message)) {
+				if (empty($message)) {
 					return '';
 				}
 
@@ -2017,7 +2050,7 @@ class GWiz_GF_OpenAI extends GFFeedAddOn
 				$instruction = GFCommon::replace_variables($instruction, $form, $entry, false, false, false, 'text');
 
 				// If input or instruction is empty, do not generate any edit response, skip with blank.
-				if (empty ($input) || empty ($instruction)) {
+				if (empty($input) || empty($instruction)) {
 					return '';
 				}
 
@@ -2093,7 +2126,7 @@ class GWiz_GF_OpenAI extends GFFeedAddOn
 			$mepr_user = new MeprUser($current_user->ID);
 			$active_memberships = $mepr_user->active_product_subscriptions();
 
-			if (!empty ($active_memberships)) {
+			if (!empty($active_memberships)) {
 				$primary_membership = get_post($active_memberships[0]);
 				if ($primary_membership) {
 					$primary_identifier = $primary_membership->post_name; // User has a membership
@@ -2101,7 +2134,7 @@ class GWiz_GF_OpenAI extends GFFeedAddOn
 			} else {
 				$primary_identifier = 'No_membership'; // No active membership
 			}
-		} else if (!empty ($current_user->roles)) {
+		} else if (!empty($current_user->roles)) {
 			$primary_identifier = $current_user->roles[0]; // Fallback to user role
 		}
 
