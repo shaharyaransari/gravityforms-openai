@@ -716,6 +716,11 @@ class GWiz_GF_OpenAI extends GFFeedAddOn
 						'tooltip' => 'API Provider: https://serving.app.predibase.com/6266f0/deployments/v2/llms/mistral-7b-instruct/v1/'
 					),
 					array(
+						'value' => 'https://serving.app.predibase.com/6266f0/deployments/v2/llms/llama-3-8b-instruct/v1/',
+						'label' => __('Predibase Llama-3-8b-instruct', 'gravityforms-openai'),
+						'tooltip' => 'API Provider: https://serving.app.predibase.com/6266f0/deployments/v2/llms/llama-3-8b-instruct/v1/'
+					),
+					array(
 						'value' => 'https://POD_ID-80.proxy.runpod.net/v1/',
 						'label' => __('RunPod Mistral-7b-instruct v0.1', 'gravityforms-openai'),
 						'tooltip' => 'API Provider: https://POD_ID-80.proxy.runpod.net/v1/'
