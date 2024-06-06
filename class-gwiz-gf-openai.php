@@ -725,6 +725,11 @@ class GWiz_GF_OpenAI extends GFFeedAddOn
 						'label' => __('RunPod Mistral-7b-instruct v0.1', 'gravityforms-openai'),
 						'tooltip' => 'API Provider: https://POD_ID-80.proxy.runpod.net/v1/'
 					),
+					array(
+						'value' => 'http://api3.ieltsscience.fun/v1/',
+						'label' => __('Home API Llama-3-8b-instruct', 'gravityforms-openai'),
+						'tooltip' => 'API Provider: https://api3.ieltsscience.fun/v1/'
+					),
 				),
 				'default_value' => 'https://api2.ieltsscience.fun/v1/',
 			);
@@ -762,7 +767,7 @@ class GWiz_GF_OpenAI extends GFFeedAddOn
 						'name' => 'runpod_pod_id',
 						'label' => 'RunPod Pod ID',
 						'type' => 'text',
-						'tooltip' => 'Enter the RunPod Pod ID to use for Mistral 7b Instruct v0.1',
+						'tooltip' => 'Enter the RunPod Pod ID to use.',
 						'class' => 'small',
 					),
 				),
@@ -774,14 +779,14 @@ class GWiz_GF_OpenAI extends GFFeedAddOn
 						'name' => 'chat_completions_lora_adapter',
 						'label' => 'Lora Adapter',
 						'type' => 'text',
-						'tooltip' => 'Enter the Lora Adapter to use for Mistral 7b Instruct v0.1.',
+						'tooltip' => 'Enter the Lora Adapter to use.',
 						'class' => 'small',
 					),
 					array(
 						'name' => 'chat_completions_lora_adapter_HF',
 						'label' => 'Lora Adapter HF',
 						'type' => 'text',
-						'tooltip' => 'Enter the Huggingface Lora Adapter to use for Mistral 7b Instruct v0.1.',
+						'tooltip' => 'Enter the Huggingface Lora Adapter to use.',
 						'class' => 'small',
 					),
 					array(
@@ -1441,7 +1446,7 @@ class GWiz_GF_OpenAI extends GFFeedAddOn
 		if (strpos($api_base, 'predibase') !== false) {
 			$model = $feed["meta"]['chat_completions_lora_adapter'];
 			$message = $feed["meta"]["chat_completions_lorax_message"];
-		} elseif (strpos($api_base, 'runpod') !== false) {
+		} elseif (strpos($api_base, 'runpod') !== false || strpos($api_base, 'api3') !== false) {
 			$model = $feed["meta"]['chat_completions_lora_adapter_HF'];
 			$message = $feed["meta"]["chat_completions_lorax_message"];
 		} else {
@@ -2013,10 +2018,10 @@ class GWiz_GF_OpenAI extends GFFeedAddOn
 				$api_base = rgar($feed['meta'], "api_base_$primary_identifier", 'https://api.openai.com/v1/');
 
 				if (strpos($api_base, 'predibase') !== false) {
-					// Get the model from feed metadata based on user's role or membership
+					// Get the model from feed metadata
 					$model = $feed["meta"]['chat_completions_lora_adapter'];
-				} elseif (strpos($api_base, 'runpod') !== false) {
-					// Get the model from feed metadata based on user's role or membership
+				} elseif (strpos($api_base, 'runpod') !== false || strpos($api_base, 'api3') !== false) {
+					// Get the model from feed metadata
 					$model = $feed["meta"]['chat_completions_lora_adapter_HF'];
 				} else {
 					// Get the model from feed metadata based on user's role or membership
