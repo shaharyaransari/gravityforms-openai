@@ -1602,7 +1602,7 @@ class GWiz_GF_OpenAI extends GFFeedAddOn
 		GFAPI::add_note($entry['id'], 0, 'OpenAI Request (' . $feed['meta']['feed_name'] . ')', sprintf(__('Sent request to OpenAI completions endpoint.', 'gravityforms-openai')));
 
 		// translators: placeholders are the feed name, model, prompt
-		$this->log_debug(__METHOD__ . '(): ' . sprintf(__('Sent request to OpenAI. Feed: %1$s, Endpoint: completions, Model: %2$s, Prompt: %3$s', 'gravityforms-openai'), $feed['meta']['feed_name'], $model, $prompt));
+		// $this->log_debug(__METHOD__ . '(): ' . sprintf(__('Sent request to OpenAI. Feed: %1$s, Endpoint: completions, Model: %2$s, Prompt: %3$s', 'gravityforms-openai'), $feed['meta']['feed_name'], $model, $prompt));
 
 		$response = $this->make_request('completions', array(
 			'prompt' => $prompt,
@@ -1677,7 +1677,7 @@ class GWiz_GF_OpenAI extends GFFeedAddOn
 		GFAPI::add_note($entry['id'], 0, 'OpenAI Request (' . $feed['meta']['feed_name'] . ')', sprintf(__('Sent request to OpenAI chat/completions endpoint.', 'gravityforms-openai')));
 
 		// translators: placeholders are the feed name, model, prompt
-		$this->log_debug(__METHOD__ . '(): ' . sprintf(__('Sent request to OpenAI. Feed: %1$s, Endpoint: chat, Model: %2$s, Message: %3$s', 'gravityforms-openai'), $feed['meta']['feed_name'], $model, $message));
+		// $this->log_debug(__METHOD__ . '(): ' . sprintf(__('Sent request to OpenAI. Feed: %1$s, Endpoint: chat, Model: %2$s, Message: %3$s', 'gravityforms-openai'), $feed['meta']['feed_name'], $model, $message));
 
 		// Check if the model is GPT-4 Vision and if the image link is not empty
 		if (strpos($model, 'vision') !== false && !empty($image_link)) {
@@ -1754,7 +1754,7 @@ class GWiz_GF_OpenAI extends GFFeedAddOn
 		GFAPI::add_note($entry['id'], 0, 'OpenAI Request (' . $feed['meta']['feed_name'] . ')', sprintf(__('Sent request to OpenAI edits endpoint.', 'gravityforms-openai')));
 
 		// translators: placeholders are the feed name, model, prompt
-		$this->log_debug(__METHOD__ . '(): ' . sprintf(__('Sent request to OpenAI. Feed: %1$s, Endpoint: edits, Model: %2$s, Input: %3$s, instruction: %4$s', 'gravityforms-openai'), $feed['meta']['feed_name'], $model, $input, $instruction));
+		// $this->log_debug(__METHOD__ . '(): ' . sprintf(__('Sent request to OpenAI. Feed: %1$s, Endpoint: edits, Model: %2$s, Input: %3$s, instruction: %4$s', 'gravityforms-openai'), $feed['meta']['feed_name'], $model, $input, $instruction));
 
 		$response = $this->make_request('edits', array(
 			'input' => $input,
@@ -1800,17 +1800,17 @@ class GWiz_GF_OpenAI extends GFFeedAddOn
 		$combined_text = '';
 
 		foreach ($file_urls as $file_url) {
-			$this->log_debug("File URL from entry: " . $file_url);
+			// $this->log_debug("File URL from entry: " . $file_url);
 
 			$file_path = $this->convert_url_to_path($file_url);
 
 			if (is_readable($file_path)) {
-				$this->log_debug("File is accessible: " . $file_path);
+				// $this->log_debug("File is accessible: " . $file_path);
 				$curl_file = curl_file_create($file_path, 'audio/mpeg', basename($file_path));
 				$body = array('file' => $curl_file, 'model' => $model);
 
 				$response = $this->make_request('audio/transcriptions', $body, $feed, 'whisper');
-				$this->log_debug("Raw Whisper API response: " . print_r($response, true));
+				// $this->log_debug("Raw Whisper API response: " . print_r($response, true));
 
 				if (is_wp_error($response)) {
 					$this->add_feed_error($response->get_error_message(), $feed, $entry, $form);
@@ -1846,29 +1846,32 @@ class GWiz_GF_OpenAI extends GFFeedAddOn
 		// Get the file URLs from the entry
 		$file_urls = rgar($entry, $file_field_id);
 		$reference_text = rgar($entry, $text_field_id);
-		$this->log_debug("Text Field ID: " . $text_field_id);
-		$this->log_debug("File Field ID: " . $file_field_id);
-		$this->log_debug("File URLs from entry: " . print_r($file_urls, true));
+		// $this->log_debug("Text Field ID: " . $text_field_id);
+		// $this->log_debug("File Field ID: " . $file_field_id);
+		// $this->log_debug("File URLs from entry: " . print_r($file_urls, true));
 
 		// Convert file_urls to array if it's a JSON string
 		if (is_string($file_urls)) {
 			$file_urls = json_decode($file_urls, true);
-			$this->log_debug("Converted file_urls to array: " . print_r($file_urls, true));
+			// $this->log_debug("Converted file_urls to array: " . print_r($file_urls, true));
 		}
 
 		// Check if file_urls is now an array
 		if (is_array($file_urls)) {
 			foreach ($file_urls as $file_url) {
-				$this->log_debug("File URL from entry: " . $file_url);
+				// $this->log_debug("File URL from entry: " . $file_url);
 				$body = array('url' => $file_url, 'reference_text' => $reference_text);
-				$this->log_debug("Request Data: " . print_r($body, true));
+				// $this->log_debug("Request Data: " . print_r($body, true));
 				$response = $this->make_request('pronunciation', $body, $feed);
-				$this->log_debug("Raw Pronunciation API response: " . print_r($response, true));
+				// $this->log_debug("Raw Pronunciation API response: " . print_r($response, true));
 				if (is_wp_error($response)) {
 					$this->add_feed_error($response->get_error_message(), $feed, $entry, $form);
 				}
 				$response_body = wp_remote_retrieve_body($response);
-				$responses[$file_url] = $response_body;
+				$response_body = $this->parse_event_stream_data($response_body);
+				$pretty_json = json_encode($response_body, JSON_PRETTY_PRINT);
+				$this->log_debug("Pritty JSON: " . print_r($pretty_json, true));
+				$responses[$file_url] = $pretty_json;
 			}
 		} else {
 			$this->log_debug("file_urls is still not an array or is empty after conversion. It is of type: " . gettype($file_urls));
@@ -1880,10 +1883,24 @@ class GWiz_GF_OpenAI extends GFFeedAddOn
 			$entry = $this->maybe_save_result_to_field($feed, $entry, $form, print_r($responses,true));
 		}
 
-		gform_add_meta($entry['id'], 'whisper_response_' . $feed['id'], $combined_text);
+		gform_add_meta($entry['id'], 'pronunciation_response_' . $feed['id'], $responses);
 		return $entry;
 
 		return $entry;
+	}
+
+	public function parse_event_stream_data($event_stream_data) {
+		$data_lines = explode("\n", trim($event_stream_data));
+		$data_list = array();
+
+		foreach ($data_lines as $line) {
+			if (strpos($line, 'data: ') === 0) {
+				$json_data = substr($line, strlen('data: '));
+				$data_list[] = json_decode($json_data, true);
+			}
+		}
+
+		return $data_list;
 	}
 
 
@@ -2650,11 +2667,11 @@ class GWiz_GF_OpenAI extends GFFeedAddOn
 					),
 					'method'      => 'POST',
 				);
-				$this->log_debug("Request Args:  " . print_r($args, true));
+				// $this->log_debug("Request Args:  " . print_r($args, true));
 				// Perform the request
 				$response = wp_remote_post($url, $args);
-				$this->log_debug("Languagetool API Payload: " . print_r($body, true));
-				$this->log_debug("Languagetool API Response: " . print_r($response, true));
+				// $this->log_debug("Languagetool API Payload: " . print_r($body, true));
+				// $this->log_debug("Languagetool API Response: " . print_r($response, true));
 				break;
 			case 'pronunciation':
 				$body['url'] = 'https://beta.ieltsscience.fun/wp-content/uploads/2024/07/Speaking-Ho-Thi-Xuan-Huong-2.mp3'; //Temporary Server URL
@@ -2676,11 +2693,11 @@ class GWiz_GF_OpenAI extends GFFeedAddOn
 					'method'      => 'POST',
 					'timeout'     => 60,
 				);
-				$this->log_debug("Request Args:  " . print_r($args, true));
+				// $this->log_debug("Request Args:  " . print_r($args, true));
 				// Perform the request
 				$response = wp_remote_post($url, $args);
-				$this->log_debug("Pronunciation API Payload: " . print_r($body, true));
-				$this->log_debug("Pronunciation API Response: " . print_r($response, true));
+				// $this->log_debug("Pronunciation API Payload: " . print_r($body, true));
+				// $this->log_debug("Pronunciation API Response: " . print_r($response, true));
 				break;
 		}
 		$body = apply_filters('gf_openai_request_body', $body, $endpoint, $feed);
@@ -2749,8 +2766,8 @@ class GWiz_GF_OpenAI extends GFFeedAddOn
 		$secret_key_index = $this->getBestSecretKey();
 
 		// Log the retrieved settings and secret key
-		$this->log_debug("Settings: " . print_r($settings, true));
-		$this->log_debug("Selected Secret Key: " . $secret_key_index);
+		// $this->log_debug("Settings: " . print_r($settings, true));
+		// $this->log_debug("Selected Secret Key: " . $secret_key_index);
 
 		$organization = $settings["organization_$secret_key_index"];
 
@@ -2772,7 +2789,7 @@ class GWiz_GF_OpenAI extends GFFeedAddOn
 		}
 
 		// Log the constructed headers
-		$this->log_debug("Headers: " . print_r($headers, true));
+		// $this->log_debug("Headers: " . print_r($headers, true));
 
 		return $headers;
 	}
