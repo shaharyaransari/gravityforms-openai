@@ -469,6 +469,29 @@ class GWiz_GF_OpenAI extends GFFeedAddOn
 				),
 			),
 		);
+
+		// Google Drive Integration
+		$fields[] = array(
+			'title' => 'Google Drive',
+			'fields' => array(
+				array(
+					'label'   => esc_html__('Google Cloud Console API Key', 'gravityforms-openai'),
+					'type'    => 'text',
+					'input_type' => 'password',
+					'name'    => 'gcloud_console_api_key',
+					'tooltip' => esc_html__('Google API key From Cloud Console.', 'gravityforms-openai'),
+					'class'   => 'small',
+				),
+				array(
+					'label'   => esc_html__('Client ID', 'gravityforms-openai'),
+					'type'    => 'text',
+					'input_type' => 'url',
+					'name'    => 'gcloud_app_client_id',
+					'tooltip' => esc_html__('Client ID of Your Cloud Console Project', 'gravityforms-openai'),
+					'class'   => 'small',
+				),
+			),
+		);
 		for ($i = 1; $i <= 10; $i++) {
 
 			$fields[] = array(
