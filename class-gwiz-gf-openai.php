@@ -2821,6 +2821,7 @@ class GWiz_GF_OpenAI extends GFFeedAddOn
 						'Accept'       => 'application/json',
 					),
 					'method'      => 'POST',
+					'timeout'     => 10000,
 				);
 				// $this->log_debug("Request Args:  " . print_r($args, true));
 				// Perform the request
